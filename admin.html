@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - wOs Portfolio</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-screen">
+            <div class="login-box">
+                <div class="login-header">
+                    <span class="admin-logo">wOs</span>
+                    <h2>Admin Panel</h2>
+                    <p>Wave Of Solution Technology</p>
+                </div>
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="adminPassword">Password</label>
+                        <input type="password" id="adminPassword" name="password" placeholder="Enter admin password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="loginError" class="error-message" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+            <!-- Header -->
+            <header class="admin-header">
+                <div class="admin-header-content">
+                    <div class="admin-header-left">
+                        <span class="admin-logo">wOs</span>
+                        <h1>Admin Panel</h1>
+                    </div>
+                    <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="admin-main">
+                <!-- Tabs -->
+                <div class="admin-tabs">
+                    <button class="tab-btn active" data-tab="projects">Projects</button>
+                    <button class="tab-btn" data-tab="team">Team</button>
+                    <button class="tab-btn" data-tab="messages">Messages</button>
+                </div>
+
+                <!-- Projects Tab -->
+                <div id="projectsTab" class="tab-content active">
+                    <div class="admin-section-header">
+                        <h2>Portfolio Projects</h2>
+                        <button class="btn btn-primary" id="addProjectBtn">+ Add Project</button>
+                    </div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Platform</th>
+                                    <th>Technologies</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectsTableBody">
+                                <tr>
+                                    <td colspan="4" class="loading">Loading projects...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Team Tab -->
+                <div id="teamTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Team Members</h2>
+                        <button class="btn btn-primary" id="addTeamBtn">+ Add Team Member</button>
+                    </div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Email</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teamTableBody">
+                                <tr>
+                                    <td colspan="4" class="loading">Loading team members...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Messages Tab -->
+                <div id="messagesTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Contact Messages</h2>
+                    </div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Subject</th>
+                                    <th>Date</th>
+                                    <th>Read</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messagesTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">Loading messages...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="projectModalTitle">Add Project</h2>
+                <button class="modal-close" id="closeProjectModal">&times;</button>
+            </div>
+            <form id="projectForm" class="modal-form">
+                <input type="hidden" id="projectId" name="id">
+                <div class="form-group">
+                    <label for="projectTitle">Title *</label>
+                    <input type="text" id="projectTitle" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="projectDescription">Description *</label>
+                    <textarea id="projectDescription" name="description" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="projectPlatform">Platform *</label>
+                    <select id="projectPlatform" name="platform" required>
+                        <option value="Mobile App">Mobile App</option>
+                        <option value="Web Application">Web Application</option>
+                        <option value="Both">Both</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="projectTechnologies">Technologies (comma-separated) *</label>
+                    <input type="text" id="projectTechnologies" name="technologies" placeholder="React, Node.js, MongoDB" required>
+                </div>
+                <div class="form-group">
+                    <label for="projectImageFile">Upload Image (optional)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="projectImageFile" name="image_file" accept="image/*" class="file-input">
+                        <div class="file-upload-btn">
+                            <span class="file-upload-icon">📁</span>
+                            <span class="file-upload-text">Choose Image</span>
+                        </div>
+                        <span class="file-name" id="projectFileName">No file chosen</span>
+                    </div>
+                    <div class="image-preview" id="projectImagePreview" style="display: none;">
+                        <img id="projectPreviewImg" src="" alt="Preview">
+                        <button type="button" class="remove-image-btn" onclick="removeProjectImage()">✕</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="projectImageUrl">Or paste Image URL (optional)</label>
+                    <input type="url" id="projectImageUrl" name="image_url" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="projectLink">Project Link (optional)</label>
+                    <input type="url" id="projectLink" name="project_link" placeholder="https://example.com">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelProjectBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Team Modal -->
+    <div id="teamModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="teamModalTitle">Add Team Member</h2>
+                <button class="modal-close" id="closeTeamModal">&times;</button>
+            </div>
+            <form id="teamForm" class="modal-form">
+                <input type="hidden" id="teamId" name="id">
+                <div class="form-group">
+                    <label for="teamName">Name *</label>
+                    <input type="text" id="teamName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="teamRole">Role *</label>
+                    <input type="text" id="teamRole" name="role" placeholder="e.g., Senior Developer, Designer" required>
+                </div>
+                <div class="form-group">
+                    <label for="teamBio">Bio *</label>
+                    <textarea id="teamBio" name="bio" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="teamEmail">Email (optional)</label>
+                    <input type="email" id="teamEmail" name="email">
+                </div>
+                <div class="form-group">
+                    <label for="teamImageFile">Upload Photo (optional)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="teamImageFile" name="image_file" accept="image/*" class="file-input">
+                        <div class="file-upload-btn">
+                            <span class="file-upload-icon">📁</span>
+                            <span class="file-upload-text">Choose Photo</span>
+                        </div>
+                        <span class="file-name" id="teamFileName">No file chosen</span>
+                    </div>
+                    <div class="image-preview" id="teamImagePreview" style="display: none;">
+                        <img id="teamPreviewImg" src="" alt="Preview">
+                        <button type="button" class="remove-image-btn" onclick="removeTeamImage()">✕</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="teamImageUrl">Or paste Image URL (optional)</label>
+                    <input type="url" id="teamImageUrl" name="image_url" placeholder="https://example.com/photo.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="teamLinkedIn">LinkedIn URL (optional)</label>
+                    <input type="url" id="teamLinkedIn" name="linkedin_url" placeholder="https://linkedin.com/in/username">
+                </div>
+                <div class="form-group">
+                    <label for="teamGithub">GitHub URL (optional)</label>
+                    <input type="url" id="teamGithub" name="github_url" placeholder="https://github.com/username">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelTeamBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Message View Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Message Details</h2>
+                <button class="modal-close" id="closeMessageModal">&times;</button>
+            </div>
+            <div id="messageContent" class="message-content">
+                <!-- Message details will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase after library loads - make it GLOBAL
+        const SUPABASE_URL = 'https://widshsxgcqmyjobaxkhz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpZHNoc3hnY3FteWpvYmF4a2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1Njg1ODEsImV4cCI6MjA4NTE0NDU4MX0.9unbbHCwCCqg94oxR-GkzJBwFDdya0MyLEnDXbV5GlM';
+        
+        // Make supabase client globally available
+        window.supabaseClient = null;
+        if (window.supabase && window.supabase.createClient) {
+            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('Supabase initialized successfully');
+        } else {
+            console.error('Supabase library failed to load');
+        }
+    </script>
+    <script src="admin.js"></script>
+</body>
+</html>

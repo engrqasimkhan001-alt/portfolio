@@ -1,0 +1,15 @@
+{
+  "name": "portfolio-website",
+  "version": "1.0.0",
+  "description": "Professional portfolio website for Engr Qasim Khan",
+  "scripts": {
+    "dev": "npx http-server -p 8000 -o",
+    "start": "npx http-server -p 8000 -o"
+  },
+  "keywords": [
+    "portfolio",
+    "website"
+  ],
+  "author": "Engr Qasim Khan",
+  "license": "MIT"
+}
