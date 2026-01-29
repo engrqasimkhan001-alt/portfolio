@@ -36,10 +36,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const techTags = technologies.map(tech => 
                 `<span class="tech-tag">${tech}</span>`
             ).join('');
+            const mainImage = (project.image_urls && project.image_urls[0]) || project.image_url || '';
 
             return `
                 <div class="portfolio-item fade-in">
-                    <div class="portfolio-image" style="${project.image_url ? `background-image: url('${project.image_url}'); background-size: cover; background-position: center;` : ''}">
+                    <div class="portfolio-image" style="${mainImage ? `background-image: url('${mainImage}'); background-size: cover; background-position: center;` : ''}">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">${project.platform}</span>
                         </div>

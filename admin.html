@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -51,6 +52,7 @@
                 <div class="admin-tabs">
                     <button class="tab-btn active" data-tab="projects">Projects</button>
                     <button class="tab-btn" data-tab="team">Team</button>
+                    <button class="tab-btn" data-tab="applications">Applications</button>
                     <button class="tab-btn" data-tab="messages">Messages</button>
                 </div>
 
@@ -98,6 +100,52 @@
                             <tbody id="teamTableBody">
                                 <tr>
                                     <td colspan="4" class="loading">Loading team members...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Applications Tab -->
+                <div id="applicationsTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Job Applications</h2>
+                        <div class="admin-filters">
+                            <select id="applicationStatusFilter" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="shortlisted">Shortlisted</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="hired">Hired</option>
+                            </select>
+                            <select id="applicationPositionFilter" class="filter-select">
+                                <option value="">All Positions</option>
+                                <option value="Mobile App Developer">Mobile App Developer</option>
+                                <option value="Web Developer">Web Developer</option>
+                                <option value="UI/UX Designer">UI/UX Designer</option>
+                                <option value="Backend Developer">Backend Developer</option>
+                                <option value="Full Stack Developer">Full Stack Developer</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Position</th>
+                                    <th>Experience</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="applicationsTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">Loading applications...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -163,23 +211,36 @@
                     <input type="text" id="projectTechnologies" name="technologies" placeholder="React, Node.js, MongoDB" required>
                 </div>
                 <div class="form-group">
-                    <label for="projectImageFile">Upload Image (optional)</label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="projectImageFile" name="image_file" accept="image/*" class="file-input">
-                        <div class="file-upload-btn">
-                            <span class="file-upload-icon">📁</span>
-                            <span class="file-upload-text">Choose Image</span>
+                    <label>Project images</label>
+                    <p class="form-hint">Drag to reorder. First image is used as the main project image.</p>
+                    <div id="projectImagesList" class="project-images-list" data-empty-text="No images yet. Add one below.">
+                        <!-- Filled by JS; items are sortable -->
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="projectImageFile">Upload new image (optional)</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="projectImageFile" name="image_file" accept="image/*" class="file-input">
+                            <div class="file-upload-btn">
+                                <span class="file-upload-icon">📁</span>
+                                <span class="file-upload-text">Choose Image</span>
+                            </div>
+                            <span class="file-name" id="projectFileName">No file chosen</span>
                         </div>
-                        <span class="file-name" id="projectFileName">No file chosen</span>
+                        <div class="image-preview" id="projectImagePreview" style="display: none;">
+                            <img id="projectPreviewImg" src="" alt="Preview">
+                            <button type="button" class="remove-image-btn" onclick="removeProjectImage()">✕</button>
+                        </div>
+                        <div class="upload-progress" id="projectUploadProgress" style="display: none;">
+                            <div class="upload-progress-bar" id="projectProgressBar">
+                                <div class="upload-progress-fill" id="projectProgressFill"></div>
+                            </div>
+                            <span class="upload-progress-text" id="projectProgressText">Uploading...</span>
+                        </div>
                     </div>
-                    <div class="image-preview" id="projectImagePreview" style="display: none;">
-                        <img id="projectPreviewImg" src="" alt="Preview">
-                        <button type="button" class="remove-image-btn" onclick="removeProjectImage()">✕</button>
+                    <div class="form-group">
+                        <label for="projectImageUrl">Or paste Image URL (optional)</label>
+                        <input type="url" id="projectImageUrl" name="image_url" placeholder="https://example.com/image.jpg">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label for="projectImageUrl">Or paste Image URL (optional)</label>
-                    <input type="url" id="projectImageUrl" name="image_url" placeholder="https://example.com/image.jpg">
                 </div>
                 <div class="form-group">
                     <label for="projectLink">Project Link (optional)</label>
@@ -232,6 +293,12 @@
                         <img id="teamPreviewImg" src="" alt="Preview">
                         <button type="button" class="remove-image-btn" onclick="removeTeamImage()">✕</button>
                     </div>
+                    <div class="upload-progress" id="teamUploadProgress" style="display: none;">
+                        <div class="upload-progress-bar" id="teamProgressBar">
+                            <div class="upload-progress-fill" id="teamProgressFill"></div>
+                        </div>
+                        <span class="upload-progress-text" id="teamProgressText">Uploading...</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="teamImageUrl">Or paste Image URL (optional)</label>
@@ -266,6 +333,46 @@
         </div>
     </div>
 
+    <!-- Application Details Modal -->
+    <div id="applicationModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Application Details</h2>
+                <button class="modal-close" id="closeApplicationModal">&times;</button>
+            </div>
+            <div id="applicationContent" class="application-content">
+                <!-- Application details will be inserted here -->
+            </div>
+            <div class="modal-actions">
+                <select id="applicationStatusSelect" class="status-select">
+                    <option value="pending">Pending</option>
+                    <option value="reviewed">Reviewed</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="hired">Hired</option>
+                </select>
+                <button type="button" class="btn btn-primary" id="updateApplicationStatusBtn">Update Status</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Crop Modal -->
+    <div id="cropModal" class="modal">
+        <div class="modal-content crop-modal-content">
+            <div class="modal-header">
+                <h2>Crop Image</h2>
+                <button class="modal-close" id="closeCropModal">&times;</button>
+            </div>
+            <div class="crop-container">
+                <img id="cropImage" src="" alt="Crop preview" style="max-width: 100%; max-height: 400px;">
+            </div>
+            <div class="crop-actions">
+                <button type="button" class="btn btn-secondary" id="cancelCropBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyCropBtn">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Supabase JS SDK -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
@@ -282,6 +389,7 @@
             console.error('Supabase library failed to load');
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

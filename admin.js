@@ -1,9 +1,12 @@
 // Admin Panel JavaScript
-const ADMIN_PASSWORD = 'wOs2024Admin!'; // Change this to your secure password
+const ADMIN_PASSWORD = 'Qasim@123'; // Admin panel password
 
 let currentEditingId = null;
 let projectImageFile = null;
 let teamImageFile = null;
+let cropper = null;
+let currentCropType = null; // 'project' or 'team'
+let projectImageUrls = []; // Ordered list of image URLs for current project
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -14,20 +17,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup file upload listeners
 function setupFileUploadListeners() {
-    // Project image file input
+    // Use event delegation for file upload buttons
+    document.querySelectorAll('.file-upload-btn').forEach(btn => {
+        // Remove existing listeners by cloning
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.style.cursor = 'pointer';
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const wrapper = this.closest('.file-upload-wrapper');
+            const fileInput = wrapper ? wrapper.querySelector('.file-input') : null;
+            if (fileInput) {
+                fileInput.click();
+            }
+        });
+    });
+    
+    // Setup file input change handlers
     const projectFileInput = document.getElementById('projectImageFile');
     if (projectFileInput) {
-        projectFileInput.addEventListener('change', (e) => {
-            handleFileSelect(e, 'project');
-        });
+        projectFileInput.onchange = (e) => handleFileSelect(e, 'project');
     }
     
-    // Team image file input
     const teamFileInput = document.getElementById('teamImageFile');
     if (teamFileInput) {
-        teamFileInput.addEventListener('change', (e) => {
-            handleFileSelect(e, 'team');
-        });
+        teamFileInput.onchange = (e) => handleFileSelect(e, 'team');
     }
 }
 
@@ -48,27 +64,11 @@ function handleFileSelect(event, type) {
         return;
     }
     
-    // Store the file
-    if (type === 'project') {
-        projectImageFile = file;
-        document.getElementById('projectFileName').textContent = file.name;
-    } else {
-        teamImageFile = file;
-        document.getElementById('teamFileName').textContent = file.name;
-    }
+    // Store the file temporarily
+    currentCropType = type;
     
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        if (type === 'project') {
-            document.getElementById('projectPreviewImg').src = e.target.result;
-            document.getElementById('projectImagePreview').style.display = 'block';
-        } else {
-            document.getElementById('teamPreviewImg').src = e.target.result;
-            document.getElementById('teamImagePreview').style.display = 'block';
-        }
-    };
-    reader.readAsDataURL(file);
+    // Show crop modal
+    openCropModal(file);
 }
 
 // Remove project image
@@ -89,13 +89,109 @@ function removeTeamImage() {
     document.getElementById('teamPreviewImg').src = '';
 }
 
-// Upload image to Supabase Storage
-async function uploadImage(file, bucket, folder) {
+// Open crop modal
+function openCropModal(file) {
+    const modal = document.getElementById('cropModal');
+    const cropImage = document.getElementById('cropImage');
+    
+    // Read file and show in crop modal
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        cropImage.src = e.target.result;
+        modal.classList.add('active');
+        
+        // Initialize cropper
+        if (cropper) {
+            cropper.destroy();
+        }
+        
+        cropper = new Cropper(cropImage, {
+            aspectRatio: 1, // Square crop for profile images
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 0.8,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+// Close crop modal
+function closeCropModal() {
+    const modal = document.getElementById('cropModal');
+    modal.classList.remove('active');
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    currentCropType = null;
+}
+
+// Apply crop
+function applyCrop() {
+    if (!cropper || !currentCropType) return;
+    
+    // Get cropped canvas
+    const canvas = cropper.getCroppedCanvas({
+        width: 800,
+        height: 800,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+    });
+    
+    // Convert canvas to blob
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            alert('Error creating cropped image');
+            return;
+        }
+        
+        // Create a File object from the blob
+        const fileName = `cropped-${Date.now()}.jpg`;
+        const croppedFile = new File([blob], fileName, { type: 'image/jpeg' });
+        
+        // Store the cropped file
+        if (currentCropType === 'project') {
+            projectImageFile = croppedFile;
+            document.getElementById('projectFileName').textContent = fileName;
+        } else {
+            teamImageFile = croppedFile;
+            document.getElementById('teamFileName').textContent = fileName;
+        }
+        
+        // Show preview
+        const previewUrl = URL.createObjectURL(blob);
+        if (currentCropType === 'project') {
+            document.getElementById('projectPreviewImg').src = previewUrl;
+            document.getElementById('projectImagePreview').style.display = 'block';
+        } else {
+            document.getElementById('teamPreviewImg').src = previewUrl;
+            document.getElementById('teamImagePreview').style.display = 'block';
+        }
+        
+        // Close crop modal
+        closeCropModal();
+    }, 'image/jpeg', 0.9);
+}
+
+// Upload image to Supabase Storage with progress
+async function uploadImage(file, bucket, folder, progressCallback) {
     if (!file || !window.supabaseClient) return null;
     
     try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        // Show progress indicator
+        if (progressCallback) {
+            progressCallback(10); // Start at 10%
+        }
         
         const { data, error } = await window.supabaseClient.storage
             .from(bucket)
@@ -103,6 +199,10 @@ async function uploadImage(file, bucket, folder) {
                 cacheControl: '3600',
                 upsert: false
             });
+        
+        if (progressCallback) {
+            progressCallback(80); // Upload complete, getting URL
+        }
         
         if (error) {
             console.error('Upload error:', error);
@@ -114,9 +214,16 @@ async function uploadImage(file, bucket, folder) {
             .from(bucket)
             .getPublicUrl(fileName);
         
+        if (progressCallback) {
+            progressCallback(100); // Complete
+        }
+        
         return urlData.publicUrl;
     } catch (error) {
         console.error('Error uploading image:', error);
+        if (progressCallback) {
+            progressCallback(0); // Reset on error
+        }
         alert('Error uploading image: ' + error.message);
         return null;
     }
@@ -179,6 +286,11 @@ function setupEventListeners() {
     // Message modal
     document.getElementById('closeMessageModal').addEventListener('click', closeMessageModal);
     
+    // Crop modal
+    document.getElementById('closeCropModal').addEventListener('click', closeCropModal);
+    document.getElementById('cancelCropBtn').addEventListener('click', closeCropModal);
+    document.getElementById('applyCropBtn').addEventListener('click', applyCrop);
+    
     // Close modals on outside click
     document.getElementById('projectModal').addEventListener('click', (e) => {
         if (e.target.id === 'projectModal') closeProjectModal();
@@ -189,6 +301,26 @@ function setupEventListeners() {
     document.getElementById('messageModal').addEventListener('click', (e) => {
         if (e.target.id === 'messageModal') closeMessageModal();
     });
+    document.getElementById('cropModal').addEventListener('click', (e) => {
+        if (e.target.id === 'cropModal') closeCropModal();
+    });
+    
+    // Application modal
+    document.getElementById('closeApplicationModal').addEventListener('click', closeApplicationModal);
+    document.getElementById('updateApplicationStatusBtn').addEventListener('click', updateApplicationStatus);
+    document.getElementById('applicationModal').addEventListener('click', (e) => {
+        if (e.target.id === 'applicationModal') closeApplicationModal();
+    });
+    
+    // Application filters
+    const statusFilter = document.getElementById('applicationStatusFilter');
+    const positionFilter = document.getElementById('applicationPositionFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', loadApplications);
+    }
+    if (positionFilter) {
+        positionFilter.addEventListener('change', loadApplications);
+    }
 }
 
 // Handle login
@@ -234,6 +366,10 @@ function switchTab(tabName) {
     // Load data for the active tab
     if (tabName === 'projects') {
         loadProjects();
+    } else if (tabName === 'team') {
+        loadTeam();
+    } else if (tabName === 'applications') {
+        loadApplications();
     } else if (tabName === 'messages') {
         loadMessages();
     }
@@ -243,6 +379,7 @@ function switchTab(tabName) {
 function loadData() {
     loadProjects();
     loadTeam();
+    loadApplications();
     loadMessages();
 }
 
@@ -290,6 +427,7 @@ async function loadProjects() {
 
 function openProjectModal(projectId = null) {
     currentEditingId = projectId;
+    projectImageUrls = [];
     const modal = document.getElementById('projectModal');
     const form = document.getElementById('projectForm');
     const title = document.getElementById('projectModalTitle');
@@ -301,10 +439,84 @@ function openProjectModal(projectId = null) {
         title.textContent = 'Add Project';
         form.reset();
         document.getElementById('projectId').value = '';
+        renderProjectImagesList();
     }
     
     modal.classList.add('active');
+    
+    setTimeout(() => {
+        setupFileUploadListeners();
+    }, 100);
 }
+
+function renderProjectImagesList() {
+    const listEl = document.getElementById('projectImagesList');
+    if (!listEl) return;
+    const emptyText = listEl.getAttribute('data-empty-text') || 'No images yet.';
+    
+    if (!projectImageUrls.length) {
+        listEl.innerHTML = `<div class="project-images-empty">${emptyText}</div>`;
+        listEl.classList.remove('has-items');
+        return;
+    }
+    
+    listEl.classList.add('has-items');
+    listEl.innerHTML = projectImageUrls.map((url, index) => `
+        <div class="project-image-item" draggable="true" data-index="${index}">
+            <span class="project-image-drag" title="Drag to reorder">⋮⋮</span>
+            <img src="${url}" alt="Project image ${index + 1}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 fill=%22%23999%22 text-anchor=%22middle%22 dy=%22.3em%22>?</text></svg>'">
+            <button type="button" class="project-image-remove" onclick="removeProjectImageByIndex(${index})" title="Remove">✕</button>
+        </div>
+    `).join('');
+    
+    setupProjectImagesDragDrop();
+}
+
+function setupProjectImagesDragDrop() {
+    const listEl = document.getElementById('projectImagesList');
+    if (!listEl) return;
+    
+    const items = listEl.querySelectorAll('.project-image-item');
+    let draggedIndex = null;
+    
+    items.forEach((item, index) => {
+        item.setAttribute('data-index', index);
+        item.addEventListener('dragstart', (e) => {
+            draggedIndex = index;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', index);
+            item.classList.add('dragging');
+        });
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            listEl.querySelectorAll('.project-image-item').forEach(i => i.classList.remove('drag-over'));
+            draggedIndex = null;
+        });
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (index !== draggedIndex) item.classList.add('drag-over');
+        });
+        item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            if (draggedIndex === null || draggedIndex === index) return;
+            const urls = [...projectImageUrls];
+            const [removed] = urls.splice(draggedIndex, 1);
+            urls.splice(index, 0, removed);
+            projectImageUrls = urls;
+            renderProjectImagesList();
+        });
+    });
+}
+
+function removeProjectImageByIndex(index) {
+    projectImageUrls.splice(index, 1);
+    renderProjectImagesList();
+}
+
+window.removeProjectImageByIndex = removeProjectImageByIndex;
 
 function closeProjectModal() {
     document.getElementById('projectModal').classList.remove('active');
@@ -327,8 +539,18 @@ async function loadProjectData(id) {
         document.getElementById('projectDescription').value = data.description;
         document.getElementById('projectPlatform').value = data.platform;
         document.getElementById('projectTechnologies').value = data.technologies;
-        document.getElementById('projectImageUrl').value = data.image_url || '';
+        document.getElementById('projectImageUrl').value = '';
         document.getElementById('projectLink').value = data.project_link || '';
+        
+        // Support both image_urls (array) and legacy image_url
+        if (data.image_urls && Array.isArray(data.image_urls) && data.image_urls.length > 0) {
+            projectImageUrls = [...data.image_urls];
+        } else if (data.image_url) {
+            projectImageUrls = [data.image_url];
+        } else {
+            projectImageUrls = [];
+        }
+        renderProjectImagesList();
     } catch (error) {
         console.error('Error loading project:', error);
         alert('Error loading project data');
@@ -350,15 +572,33 @@ async function handleProjectSubmit(e) {
             throw new Error('Supabase not configured');
         }
         
-        // Handle image upload if file selected
-        let imageUrl = document.getElementById('projectImageUrl').value.trim() || null;
+        // Add pasted URL to list if provided
+        const pastedUrl = document.getElementById('projectImageUrl').value.trim();
+        if (pastedUrl) projectImageUrls.push(pastedUrl);
         
+        // Handle image upload if file selected
         if (projectImageFile) {
+            const progressDiv = document.getElementById('projectUploadProgress');
+            const progressBar = document.getElementById('projectProgressBar');
+            const progressText = document.getElementById('projectProgressText');
+            progressDiv.style.display = 'block';
+            
             submitBtn.textContent = 'Uploading image...';
-            const uploadedUrl = await uploadImage(projectImageFile, 'images', 'projects');
-            if (uploadedUrl) {
-                imageUrl = uploadedUrl;
-            }
+            const progressFill = document.getElementById('projectProgressFill');
+            const uploadedUrl = await uploadImage(projectImageFile, 'images', 'projects', (progress) => {
+                if (progressFill) progressFill.style.width = progress + '%';
+                if (progress < 50) progressText.textContent = 'Uploading... ' + progress + '%';
+                else if (progress < 100) progressText.textContent = 'Processing... ' + progress + '%';
+                else progressText.textContent = 'Complete!';
+            });
+            
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                const fill = document.getElementById('projectProgressFill');
+                if (fill) fill.style.width = '0%';
+            }, 1000);
+            
+            if (uploadedUrl) projectImageUrls.push(uploadedUrl);
         }
         
         const formData = {
@@ -366,7 +606,8 @@ async function handleProjectSubmit(e) {
             description: document.getElementById('projectDescription').value.trim(),
             platform: document.getElementById('projectPlatform').value,
             technologies: document.getElementById('projectTechnologies').value.trim(),
-            image_url: imageUrl,
+            image_url: projectImageUrls[0] || null,
+            image_urls: projectImageUrls,
             project_link: document.getElementById('projectLink').value.trim() || null,
         };
         
@@ -405,9 +646,13 @@ async function handleProjectSubmit(e) {
 }
 
 async function deleteProject(id) {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) return;
     
     try {
+        if (!window.supabaseClient) {
+            throw new Error('Supabase not configured');
+        }
+        
         const { error } = await window.supabaseClient
             .from('portfolio_projects')
             .delete()
@@ -422,6 +667,9 @@ async function deleteProject(id) {
         alert('Error deleting project: ' + error.message);
     }
 }
+
+// Make deleteProject available globally immediately
+window.deleteProject = deleteProject;
 
 function editProject(id) {
     openProjectModal(id);
@@ -485,6 +733,11 @@ function openTeamModal(memberId = null) {
     }
     
     modal.classList.add('active');
+    
+    // Re-setup file upload listeners when modal opens (in case they weren't initialized)
+    setTimeout(() => {
+        setupFileUploadListeners();
+    }, 100);
 }
 
 function closeTeamModal() {
@@ -536,8 +789,34 @@ async function handleTeamSubmit(e) {
         let imageUrl = document.getElementById('teamImageUrl').value.trim() || null;
         
         if (teamImageFile) {
+            // Show progress indicator
+            const progressDiv = document.getElementById('teamUploadProgress');
+            const progressBar = document.getElementById('teamProgressBar');
+            const progressText = document.getElementById('teamProgressText');
+            progressDiv.style.display = 'block';
+            
             submitBtn.textContent = 'Uploading photo...';
-            const uploadedUrl = await uploadImage(teamImageFile, 'images', 'team');
+            const progressFill = document.getElementById('teamProgressFill');
+            const uploadedUrl = await uploadImage(teamImageFile, 'images', 'team', (progress) => {
+                if (progressFill) {
+                    progressFill.style.width = progress + '%';
+                }
+                if (progress < 50) {
+                    progressText.textContent = 'Uploading... ' + progress + '%';
+                } else if (progress < 100) {
+                    progressText.textContent = 'Processing... ' + progress + '%';
+                } else {
+                    progressText.textContent = 'Complete!';
+                }
+            });
+            
+            // Hide progress after a short delay
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                const fill = document.getElementById('teamProgressFill');
+                if (fill) fill.style.width = '0%';
+            }, 1000);
+            
             if (uploadedUrl) {
                 imageUrl = uploadedUrl;
             }
@@ -589,12 +868,16 @@ async function handleTeamSubmit(e) {
 }
 
 async function deleteTeamMember(id) {
-    if (!confirm('Are you sure you want to delete this team member?')) return;
+    if (!confirm('Are you sure you want to delete this team member? This action cannot be undone.')) return;
     
     try {
+        if (!window.supabaseClient) {
+            throw new Error('Supabase not configured');
+        }
+        
         const { error } = await window.supabaseClient
             .from('team_members')
-            .update({ active: false })
+            .delete()
             .eq('id', id);
         
         if (error) throw error;
@@ -607,9 +890,199 @@ async function deleteTeamMember(id) {
     }
 }
 
+// Make deleteTeamMember available globally immediately
+window.deleteTeamMember = deleteTeamMember;
+
 function editTeamMember(id) {
     openTeamModal(id);
 }
+
+// ========== APPLICATIONS ==========
+let currentApplicationId = null;
+
+async function loadApplications() {
+    const tbody = document.getElementById('applicationsTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading applications...</td></tr>';
+    
+    try {
+        if (!window.supabaseClient) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Supabase not configured</td></tr>';
+            return;
+        }
+        
+        const statusFilter = document.getElementById('applicationStatusFilter')?.value || '';
+        const positionFilter = document.getElementById('applicationPositionFilter')?.value || '';
+        
+        let query = window.supabaseClient
+            .from('job_applications')
+            .select('*');
+        
+        if (statusFilter) {
+            query = query.eq('status', statusFilter);
+        }
+        if (positionFilter) {
+            query = query.eq('position', positionFilter);
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">No applications yet.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = data.map(app => {
+            const statusClass = {
+                'pending': 'status-pending',
+                'reviewed': 'status-reviewed',
+                'shortlisted': 'status-shortlisted',
+                'rejected': 'status-rejected',
+                'hired': 'status-hired'
+            }[app.status] || '';
+            
+            return `
+                <tr>
+                    <td><strong>${app.full_name}</strong></td>
+                    <td>${app.email}</td>
+                    <td>${app.position}</td>
+                    <td>${app.experience_years ? app.experience_years + ' years' : '-'}</td>
+                    <td><span class="status-badge ${statusClass}">${app.status}</span></td>
+                    <td>${new Date(app.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-small btn-view" onclick="viewApplication(${app.id})">View</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading applications:', error);
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">Error loading applications</td></tr>';
+    }
+}
+
+async function viewApplication(id) {
+    try {
+        currentApplicationId = id;
+        const { data, error } = await window.supabaseClient
+            .from('job_applications')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        if (error) throw error;
+        
+        const content = document.getElementById('applicationContent');
+        content.innerHTML = `
+            <div class="application-detail">
+                <label>Full Name:</label>
+                <p>${data.full_name}</p>
+            </div>
+            <div class="application-detail">
+                <label>Email:</label>
+                <p><a href="mailto:${data.email}">${data.email}</a></p>
+            </div>
+            <div class="application-detail">
+                <label>Phone:</label>
+                <p>${data.phone || '-'}</p>
+            </div>
+            <div class="application-detail">
+                <label>Position:</label>
+                <p><strong>${data.position}</strong></p>
+            </div>
+            <div class="application-detail">
+                <label>Experience:</label>
+                <p>${data.experience_years ? data.experience_years + ' years' : 'Not specified'}</p>
+            </div>
+            ${data.resume_url ? `
+            <div class="application-detail">
+                <label>Resume:</label>
+                <p><a href="${data.resume_url}" target="_blank" rel="noopener">View Resume →</a></p>
+            </div>
+            ` : ''}
+            ${data.cover_letter ? `
+            <div class="application-detail">
+                <label>Cover Letter:</label>
+                <div class="application-text">${data.cover_letter}</div>
+            </div>
+            ` : ''}
+            ${data.portfolio_url ? `
+            <div class="application-detail">
+                <label>Portfolio:</label>
+                <p><a href="${data.portfolio_url}" target="_blank" rel="noopener">${data.portfolio_url}</a></p>
+            </div>
+            ` : ''}
+            ${data.linkedin_url ? `
+            <div class="application-detail">
+                <label>LinkedIn:</label>
+                <p><a href="${data.linkedin_url}" target="_blank" rel="noopener">${data.linkedin_url}</a></p>
+            </div>
+            ` : ''}
+            ${data.github_url ? `
+            <div class="application-detail">
+                <label>GitHub:</label>
+                <p><a href="${data.github_url}" target="_blank" rel="noopener">${data.github_url}</a></p>
+            </div>
+            ` : ''}
+            <div class="application-detail">
+                <label>Applied On:</label>
+                <p>${new Date(data.created_at).toLocaleString()}</p>
+            </div>
+            ${data.notes ? `
+            <div class="application-detail">
+                <label>Admin Notes:</label>
+                <div class="application-text">${data.notes}</div>
+            </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('applicationStatusSelect').value = data.status;
+        document.getElementById('applicationModal').classList.add('active');
+    } catch (error) {
+        console.error('Error loading application:', error);
+        alert('Error loading application');
+    }
+}
+
+async function updateApplicationStatus() {
+    if (!currentApplicationId) return;
+    
+    const newStatus = document.getElementById('applicationStatusSelect').value;
+    const submitBtn = document.getElementById('updateApplicationStatusBtn');
+    const originalText = submitBtn.textContent;
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Updating...';
+    
+    try {
+        const { error } = await window.supabaseClient
+            .from('job_applications')
+            .update({ status: newStatus })
+            .eq('id', currentApplicationId);
+        
+        if (error) throw error;
+        
+        alert('Application status updated successfully!');
+        closeApplicationModal();
+        loadApplications();
+    } catch (error) {
+        console.error('Error updating application status:', error);
+        alert('Error updating status: ' + error.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+function closeApplicationModal() {
+    document.getElementById('applicationModal').classList.remove('active');
+    currentApplicationId = null;
+}
+
+window.viewApplication = viewApplication;
 
 // ========== MESSAGES ==========
 async function loadMessages() {
@@ -724,3 +1197,5 @@ window.editTeamMember = editTeamMember;
 window.deleteTeamMember = deleteTeamMember;
 window.viewMessage = viewMessage;
 window.markAsRead = markAsRead;
+window.removeProjectImage = removeProjectImage;
+window.removeTeamImage = removeTeamImage;

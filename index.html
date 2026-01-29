@@ -30,6 +30,7 @@
                 <li><a href="#portfolio" class="nav-link">Portfolio</a></li>
                 <li><a href="#team" class="nav-link">Team</a></li>
                 <li><a href="#services" class="nav-link">Services</a></li>
+                <li><a href="#careers" class="nav-link">Careers</a></li>
                 <li><a href="#contact" class="nav-link">Contact</a></li>
             </ul>
             <div class="hamburger" id="hamburger">
@@ -417,6 +418,112 @@
                 <!-- Team members will be loaded from database -->
                 <div class="team-placeholder">
                     <p>Loading team members...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Careers / Apply for Job Section -->
+    <section id="careers" class="careers">
+        <div class="container">
+            <h2 class="section-title">Join Our Team</h2>
+            <p class="section-subtitle">We're always looking for talented developers to join Wave Of Solution Technology</p>
+            <div class="careers-content">
+                <div class="careers-info">
+                    <h3>Open Positions</h3>
+                    <div class="positions-list">
+                        <div class="position-item">
+                            <h4>Mobile App Developer</h4>
+                            <p>Flutter, React Native, iOS, Android</p>
+                        </div>
+                        <div class="position-item">
+                            <h4>Web Developer</h4>
+                            <p>React, Node.js, Full Stack</p>
+                        </div>
+                        <div class="position-item">
+                            <h4>UI/UX Designer</h4>
+                            <p>Figma, Adobe XD, Design Systems</p>
+                        </div>
+                        <div class="position-item">
+                            <h4>Backend Developer</h4>
+                            <p>Node.js, Python, Database Design</p>
+                        </div>
+                    </div>
+                    <p class="careers-note">Don't see a position that fits? We'd still love to hear from you!</p>
+                </div>
+                <div class="careers-form-wrapper">
+                    <form id="jobApplicationForm" class="job-application-form">
+                        <h3>Apply Now</h3>
+                        <div class="form-group">
+                            <label for="applicantName">Full Name *</label>
+                            <input type="text" id="applicantName" name="full_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantEmail">Email *</label>
+                            <input type="email" id="applicantEmail" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantPhone">Phone</label>
+                            <input type="tel" id="applicantPhone" name="phone" placeholder="+92 300 1234567">
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantPosition">Position Applying For *</label>
+                            <select id="applicantPosition" name="position" required>
+                                <option value="">Select a position</option>
+                                <option value="Mobile App Developer">Mobile App Developer</option>
+                                <option value="Web Developer">Web Developer</option>
+                                <option value="UI/UX Designer">UI/UX Designer</option>
+                                <option value="Backend Developer">Backend Developer</option>
+                                <option value="Full Stack Developer">Full Stack Developer</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantExperience">Years of Experience</label>
+                            <input type="number" id="applicantExperience" name="experience_years" min="0" max="50" placeholder="e.g., 3">
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantResumeFile">Upload Resume (optional)</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="applicantResumeFile" name="resume_file" accept=".pdf,.doc,.docx" class="file-input">
+                                <div class="file-upload-btn">
+                                    <span class="file-upload-icon">📄</span>
+                                    <span class="file-upload-text">Choose Resume</span>
+                                </div>
+                                <span class="file-name" id="resumeFileName">No file chosen</span>
+                            </div>
+                            <small class="form-hint">Accepted formats: PDF, DOC, DOCX (Max 5MB)</small>
+                            <div class="upload-progress" id="resumeUploadProgress" style="display: none;">
+                                <div class="upload-progress-bar" id="resumeProgressBar">
+                                    <div class="upload-progress-fill" id="resumeProgressFill"></div>
+                                </div>
+                                <span class="upload-progress-text" id="resumeProgressText">Uploading...</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantResume">Or paste Resume URL (optional)</label>
+                            <input type="url" id="applicantResume" name="resume_url" placeholder="https://drive.google.com/... or https://linkedin.com/in/...">
+                            <small class="form-hint">Link to your resume (Google Drive, Dropbox, LinkedIn, etc.)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantCoverLetter">Cover Letter</label>
+                            <textarea id="applicantCoverLetter" name="cover_letter" rows="4" placeholder="Tell us why you'd be a great fit..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantPortfolio">Portfolio URL (optional)</label>
+                            <input type="url" id="applicantPortfolio" name="portfolio_url" placeholder="https://yourportfolio.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantLinkedIn">LinkedIn Profile (optional)</label>
+                            <input type="url" id="applicantLinkedIn" name="linkedin_url" placeholder="https://linkedin.com/in/username">
+                        </div>
+                        <div class="form-group">
+                            <label for="applicantGithub">GitHub Profile (optional)</label>
+                            <input type="url" id="applicantGithub" name="github_url" placeholder="https://github.com/username">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                        <div id="applicationMessage" class="form-message" style="display: none;"></div>
+                    </form>
                 </div>
             </div>
         </div>
