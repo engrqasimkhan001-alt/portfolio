@@ -8,15 +8,31 @@
     <meta name="author" content="Engr Qasim Khan">
     <title>Engr Qasim Khan | Mobile & Web App Developer</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="alternate icon" href="favicon.ico">
+    <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
+    <!-- Launch Loader (splash) -->
+    <div id="appLoader" class="app-loader" aria-hidden="false">
+        <div class="loader-bg"></div>
+        <div class="loader-content">
+            <div class="loader-logo-wrap">
+                <span class="loader-logo">wOs</span>
+                <span class="loader-tagline">Wave Of Solution Technology</span>
+            </div>
+            <div class="loader-bar">
+                <div class="loader-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <p class="loader-text">Loading your experience...</p>
+        </div>
+    </div>
+
     <!-- Navigation -->
-    <nav class="navbar" id="navbar">
+    <nav class="navbar reveal-item" id="navbar">
         <div class="container">
             <div class="nav-brand">
                 <a href="#home" class="brand-link">
@@ -44,33 +60,33 @@
     <!-- Home Section -->
     <section id="home" class="home">
         <div class="container">
-            <div class="home-content">
-                <div class="company-badge">
+            <div class="home-content page-reveal">
+                <div class="company-badge reveal-item">
                     <span class="company-logo">wOs</span>
                     <span class="company-name">Wave Of Solution Technology</span>
                 </div>
                 <h1 class="home-title">
-                    <span class="greeting">Hello, I'm</span>
-                    <span class="name">Engr Qasim Khan</span>
-                    <span class="role">Mobile App Developer & Web Developer</span>
+                    <span class="greeting reveal-item">Hello, I'm</span>
+                    <span class="name reveal-item">Engr Qasim Khan</span>
+                    <span class="role reveal-item">Mobile App Developer & Web Developer</span>
                 </h1>
-                <p class="home-location">
+                <p class="home-location reveal-item">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
                     Islamabad, Pakistan
                 </p>
-                <p class="home-description">
+                <p class="home-description reveal-item">
                     I create exceptional mobile and web applications that solve real-world problems. 
                     Specialized in iOS, Android, and full-stack development with a focus on quality, 
                     performance, and user experience.
                 </p>
-                <div class="home-buttons">
+                <div class="home-buttons reveal-item">
                     <a href="#contact" class="btn btn-primary">Hire Me</a>
                     <a href="#portfolio" class="btn btn-secondary">View Portfolio</a>
                 </div>
-                <div class="home-social">
+                <div class="home-social reveal-item">
                     <a href="https://www.upwork.com/freelancers/~yourprofile" target="_blank" rel="noopener noreferrer" class="social-link">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06 1.492 0 2.703 1.212 2.703 2.703-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.546-1.405 0-2.543-1.14-2.545-2.546V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z"/>
@@ -80,7 +96,7 @@
                 </div>
             </div>
         </div>
-        <div class="scroll-indicator">
+        <div class="scroll-indicator reveal-item">
             <span>Scroll Down</span>
             <div class="scroll-arrow"></div>
         </div>
@@ -229,8 +245,8 @@
         <div class="container">
             <h2 class="section-title">Portfolio</h2>
             <p class="section-subtitle">A selection of my recent work</p>
-            <div class="portfolio-grid">
-                <div class="portfolio-item">
+            <div class="portfolio-grid" id="portfolioGrid">
+                <div class="portfolio-item" data-project-title="E-Commerce Mobile App" data-project-platform="Mobile App" data-project-description="A full-featured e-commerce application for iOS and Android with real-time inventory management, secure payment integration, and user-friendly interface." data-project-technologies="Flutter, Firebase, Stripe API">
                     <div class="portfolio-image">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Mobile App</span>
@@ -249,7 +265,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="portfolio-item">
+                <div class="portfolio-item" data-project-title="Project Management Dashboard" data-project-platform="Web Application" data-project-description="A comprehensive web-based project management tool with team collaboration features, task tracking, and real-time updates." data-project-technologies="React, Node.js, MongoDB">
                     <div class="portfolio-image">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Web Application</span>
@@ -268,7 +284,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="portfolio-item">
+                <div class="portfolio-item" data-project-title="Fitness Tracking App" data-project-platform="Mobile App" data-project-description="An iOS and Android fitness application with workout tracking, progress analytics, and social features for sharing achievements." data-project-technologies="React Native, Firebase, Charts API">
                     <div class="portfolio-image">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Mobile App</span>
@@ -287,7 +303,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="portfolio-item">
+                <div class="portfolio-item" data-project-title="Restaurant Ordering System" data-project-platform="Web Application" data-project-description="A complete online ordering system for restaurants with admin panel, customer interface, and real-time order tracking." data-project-technologies="Vue.js, Python, PostgreSQL">
                     <div class="portfolio-image">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Web Application</span>
@@ -306,7 +322,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="portfolio-item">
+                <div class="portfolio-item" data-project-title="Social Media App" data-project-platform="Mobile App" data-project-description="A cross-platform social media application with messaging, photo sharing, and content discovery features." data-project-technologies="Flutter, Firebase, Cloud Storage">
                     <div class="portfolio-image">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Mobile App</span>
@@ -325,7 +341,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="portfolio-item">
+                <div class="portfolio-item" data-project-title="Analytics Dashboard" data-project-platform="Web Application" data-project-description="A data visualization dashboard with interactive charts, real-time data processing, and customizable reporting features." data-project-technologies="React, D3.js, REST API">
                     <div class="portfolio-image">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Web Application</span>
@@ -347,6 +363,37 @@
             </div>
         </div>
     </section>
+
+    <!-- Project Detail Screen (overlay) -->
+    <div id="projectDetailOverlay" class="project-detail-overlay" aria-hidden="true">
+        <div class="project-detail-backdrop"></div>
+        <div class="project-detail-panel">
+            <header class="project-detail-header">
+                <a href="#portfolio" class="project-detail-back">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Portfolio
+                </a>
+                <button type="button" class="project-detail-close" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </header>
+            <div class="project-detail-body">
+                <div class="project-detail-gallery">
+                    <div class="project-detail-hero">
+                        <div id="projectDetailHero" class="project-detail-hero-img"></div>
+                    </div>
+                    <div id="projectDetailThumbs" class="project-detail-thumbs"></div>
+                </div>
+                <div class="project-detail-info">
+                    <span id="projectDetailPlatform" class="project-detail-platform"></span>
+                    <h1 id="projectDetailTitle" class="project-detail-title"></h1>
+                    <p id="projectDetailDescription" class="project-detail-description"></p>
+                    <div id="projectDetailTech" class="project-detail-tech"></div>
+                    <a id="projectDetailLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary project-detail-cta" style="display: none;">View Live Project →</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Services Section -->
     <section id="services" class="services">
@@ -637,8 +684,65 @@
             console.error('Supabase library failed to load');
         }
     </script>
-    <script src="script.js"></script>
-    <script src="portfolio.js"></script>
-    <script src="team.js"></script>
+    <script>
+        // Launch loader: show for at least MIN_MS, then hide when page is ready
+        (function () {
+            var MIN_DISPLAY_MS = 2400;
+            var loader = document.getElementById('appLoader');
+            var progressBar = loader && loader.querySelector('.loader-progress');
+            var start = Date.now();
+            var ready = false;
+
+            function hideLoader() {
+                if (!loader) return;
+                // Reveal page content (nav + home section use .reveal-item with opacity: 0 until .revealed)
+                var revealItems = document.querySelectorAll('.reveal-item');
+                for (var i = 0; i < revealItems.length; i++) {
+                    revealItems[i].classList.add('revealed');
+                }
+                loader.classList.add('loader-hidden');
+                loader.setAttribute('aria-hidden', 'true');
+                setTimeout(function () {
+                    loader.style.display = 'none';
+                }, 650);
+            }
+
+            function tryHide() {
+                var elapsed = Date.now() - start;
+                if (ready && elapsed >= MIN_DISPLAY_MS) hideLoader();
+            }
+
+            if (progressBar) {
+                var progressInterval = setInterval(function () {
+                    var elapsed = Date.now() - start;
+                    var pct = Math.min(100, (elapsed / MIN_DISPLAY_MS) * 98);
+                    progressBar.style.width = pct + '%';
+                    progressBar.setAttribute('aria-valuenow', Math.round(pct));
+                    if (pct >= 98) clearInterval(progressInterval);
+                }, 50);
+            }
+
+            window.addEventListener('load', function () {
+                ready = true;
+                tryHide();
+            });
+            if (document.readyState === 'complete') {
+                ready = true;
+                tryHide();
+            }
+            setTimeout(function () {
+                ready = true;
+                // Fallback: ensure page content is visible even if loader is missing
+                var revealItems = document.querySelectorAll('.reveal-item');
+                for (var i = 0; i < revealItems.length; i++) {
+                    revealItems[i].classList.add('revealed');
+                }
+                tryHide();
+            }, MIN_DISPLAY_MS + 500);
+        })();
+    </script>
+    <script src="script.js" defer></script>
+    <script src="portfolio.js" defer></script>
+    <script src="team.js" defer></script>
 </body>
 </html>
