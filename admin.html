@@ -54,6 +54,7 @@
                     <button class="tab-btn" data-tab="team">Team</button>
                     <button class="tab-btn" data-tab="applications">Applications</button>
                     <button class="tab-btn" data-tab="messages">Messages</button>
+                    <button class="tab-btn" data-tab="reviews">Reviews</button>
                 </div>
 
                 <!-- Projects Tab -->
@@ -172,6 +173,33 @@
                             <tbody id="messagesTableBody">
                                 <tr>
                                     <td colspan="6" class="loading">Loading messages...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reviews Tab -->
+                <div id="reviewsTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Client Reviews</h2>
+                        <button class="btn btn-primary" id="addReviewBtn">+ Add Review</button>
+                    </div>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Review</th>
+                                    <th>Rating</th>
+                                    <th>Visible</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewsTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">Loading reviews...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -315,6 +343,51 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelTeamBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Review Modal (Add / Edit) -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="reviewModalTitle">Add Review</h2>
+                <button class="modal-close" id="closeReviewModal">&times;</button>
+            </div>
+            <form id="reviewForm" class="modal-form">
+                <input type="hidden" id="reviewId" name="id">
+                <div class="form-group">
+                    <label for="reviewClientName">Client name *</label>
+                    <input type="text" id="reviewClientName" name="client_name" placeholder="e.g. Sarah M." required>
+                </div>
+                <div class="form-group">
+                    <label for="reviewText">Review text *</label>
+                    <textarea id="reviewText" name="review_text" rows="4" placeholder="What the client said..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reviewRole">Role or location</label>
+                    <input type="text" id="reviewRole" name="role_or_location" placeholder="e.g. Startup Founder, USA">
+                </div>
+                <div class="form-group">
+                    <label for="reviewRating">Rating (1–5 stars) *</label>
+                    <select id="reviewRating" name="rating" required>
+                        <option value="5">5 stars</option>
+                        <option value="4">4 stars</option>
+                        <option value="3">3 stars</option>
+                        <option value="2">2 stars</option>
+                        <option value="1">1 star</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="reviewVisible" name="visible" checked>
+                        Show on website
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelReviewBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Review</button>
                 </div>
             </form>
         </div>

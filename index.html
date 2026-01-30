@@ -46,6 +46,7 @@
                 <li><a href="#portfolio" class="nav-link">Portfolio</a></li>
                 <li><a href="#team" class="nav-link">Team</a></li>
                 <li><a href="#services" class="nav-link">Services</a></li>
+                <li><a href="#reviews" class="nav-link">Reviews</a></li>
                 <li><a href="#careers" class="nav-link">Careers</a></li>
                 <li><a href="#contact" class="nav-link">Contact</a></li>
             </ul>
@@ -456,6 +457,80 @@
         </div>
     </section>
 
+    <!-- Client Reviews & Rating Section -->
+    <!-- HOW TO ADD/EDIT REVIEWS: Open this file (index.html), search for "Client Reviews & Rating".
+         Each review card has 3 parts to edit:
+         1) The quote inside <blockquote class="review-text"> ... </blockquote>
+         2) Client name inside <span class="review-name"> ... </span>
+         3) Role/location inside <span class="review-role"> ... </span>
+         To add a new review, copy one full <div class="review-card">...</div> block and paste before </div> of reviews-grid, then edit the text. -->
+    <section id="reviews" class="reviews">
+        <div class="container">
+            <h2 class="section-title">Client Reviews</h2>
+            <p class="section-subtitle">What clients say about working with me</p>
+            <div class="reviews-grid" id="reviewsGrid">
+                <div class="review-card fade-in">
+                    <div class="review-stars" aria-label="5 out of 5 stars">
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                    </div>
+                    <blockquote class="review-text">
+                        Qasim delivered an excellent e-commerce app on time. Professional communication and high-quality code. Would hire again.
+                    </blockquote>
+                    <div class="review-author">
+                        <span class="review-name">Sarah M.</span>
+                        <span class="review-role">Startup Founder, USA</span>
+                    </div>
+                </div>
+                <div class="review-card fade-in">
+                    <div class="review-stars" aria-label="5 out of 5 stars">
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                    </div>
+                    <blockquote class="review-text">
+                        Great experience from start to finish. The mobile app he built for us exceeded expectations. Highly recommend for Flutter projects.
+                    </blockquote>
+                    <div class="review-author">
+                        <span class="review-name">James K.</span>
+                        <span class="review-role">Product Manager, UK</span>
+                    </div>
+                </div>
+                <div class="review-card fade-in">
+                    <div class="review-stars" aria-label="5 out of 5 stars">
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                        <span class="star filled" aria-hidden="true">★</span>
+                    </div>
+                    <blockquote class="review-text">
+                        Responsive, skilled, and easy to work with. Delivered our dashboard ahead of schedule. Will definitely work together again.
+                    </blockquote>
+                    <div class="review-author">
+                        <span class="review-name">Alex T.</span>
+                        <span class="review-role">CTO, Canada</span>
+                    </div>
+                </div>
+            </div>
+            <div class="reviews-summary">
+                <div class="reviews-summary-stars">
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                </div>
+                <p class="reviews-summary-text"><strong>5.0</strong> average rating from client reviews</p>
+            </div>
+        </div>
+    </section>
+
     <!-- Team Section -->
     <section id="team" class="team">
         <div class="container">
@@ -744,5 +819,6 @@
     <script src="script.js" defer></script>
     <script src="portfolio.js" defer></script>
     <script src="team.js" defer></script>
+    <script src="reviews.js" defer></script>
 </body>
 </html>

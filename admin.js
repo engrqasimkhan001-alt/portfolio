@@ -276,6 +276,15 @@ function setupEventListeners() {
     document.getElementById('closeProjectModal').addEventListener('click', closeProjectModal);
     document.getElementById('cancelProjectBtn').addEventListener('click', closeProjectModal);
     document.getElementById('projectForm').addEventListener('submit', handleProjectSubmit);
+
+    const addReviewBtn = document.getElementById('addReviewBtn');
+    if (addReviewBtn) addReviewBtn.addEventListener('click', () => openReviewModal());
+    const closeReviewModalBtn = document.getElementById('closeReviewModal');
+    if (closeReviewModalBtn) closeReviewModalBtn.addEventListener('click', closeReviewModal);
+    const cancelReviewBtn = document.getElementById('cancelReviewBtn');
+    if (cancelReviewBtn) cancelReviewBtn.addEventListener('click', closeReviewModal);
+    const reviewForm = document.getElementById('reviewForm');
+    if (reviewForm) reviewForm.addEventListener('submit', handleReviewSubmit);
     
     // Team buttons
     document.getElementById('addTeamBtn').addEventListener('click', () => openTeamModal());
@@ -300,6 +309,10 @@ function setupEventListeners() {
     });
     document.getElementById('messageModal').addEventListener('click', (e) => {
         if (e.target.id === 'messageModal') closeMessageModal();
+    });
+    const reviewModalEl = document.getElementById('reviewModal');
+    if (reviewModalEl) reviewModalEl.addEventListener('click', (e) => {
+        if (e.target.id === 'reviewModal') closeReviewModal();
     });
     document.getElementById('cropModal').addEventListener('click', (e) => {
         if (e.target.id === 'cropModal') closeCropModal();
@@ -372,6 +385,8 @@ function switchTab(tabName) {
         loadApplications();
     } else if (tabName === 'messages') {
         loadMessages();
+    } else if (tabName === 'reviews') {
+        loadReviews();
     }
 }
 
@@ -381,6 +396,7 @@ function loadData() {
     loadTeam();
     loadApplications();
     loadMessages();
+    loadReviews();
 }
 
 // ========== PROJECTS ==========
@@ -1189,6 +1205,174 @@ async function markAsRead(id) {
 function closeMessageModal() {
     document.getElementById('messageModal').classList.remove('active');
 }
+
+// ========== REVIEWS ==========
+async function loadReviews() {
+    const tbody = document.getElementById('reviewsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading reviews...</td></tr>';
+
+    try {
+        if (!window.supabaseClient) {
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Supabase not configured</td></tr>';
+            return;
+        }
+
+        const { data, error } = await window.supabaseClient
+            .from('client_reviews')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">No reviews yet. Click "Add Review" to add one.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(review => {
+            const snippet = review.review_text.length > 60 ? review.review_text.substring(0, 60) + '…' : review.review_text;
+            const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+            return `
+            <tr>
+                <td><strong>${escapeHtml(review.client_name)}</strong></td>
+                <td>${escapeHtml(snippet)}</td>
+                <td>${stars}</td>
+                <td>${review.visible ? 'Yes' : 'No'}</td>
+                <td>${new Date(review.created_at).toLocaleDateString()}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-small btn-edit" onclick="editReview(${review.id})">Edit</button>
+                        <button class="btn-small btn-delete" onclick="deleteReview(${review.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        tbody.innerHTML = '<tr><td colspan="6" class="loading">Error loading reviews. Run migration-client-reviews.sql in Supabase first.</td></tr>';
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function openReviewModal(reviewId = null) {
+    const modal = document.getElementById('reviewModal');
+    const form = document.getElementById('reviewForm');
+    const title = document.getElementById('reviewModalTitle');
+
+    if (reviewId) {
+        title.textContent = 'Edit Review';
+        loadReviewData(reviewId);
+    } else {
+        title.textContent = 'Add Review';
+        form.reset();
+        document.getElementById('reviewId').value = '';
+        document.getElementById('reviewVisible').checked = true;
+    }
+    modal.classList.add('active');
+}
+
+function closeReviewModal() {
+    document.getElementById('reviewModal').classList.remove('active');
+}
+
+async function loadReviewData(id) {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('client_reviews')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+
+        document.getElementById('reviewId').value = data.id;
+        document.getElementById('reviewClientName').value = data.client_name || '';
+        document.getElementById('reviewText').value = data.review_text || '';
+        document.getElementById('reviewRole').value = data.role_or_location || '';
+        document.getElementById('reviewRating').value = data.rating || 5;
+        document.getElementById('reviewVisible').checked = data.visible !== false;
+    } catch (error) {
+        console.error('Error loading review:', error);
+        alert('Error loading review');
+    }
+}
+
+async function handleReviewSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('reviewId').value;
+    const clientName = document.getElementById('reviewClientName').value.trim();
+    const reviewText = document.getElementById('reviewText').value.trim();
+    const roleOrLocation = document.getElementById('reviewRole').value.trim();
+    const rating = parseInt(document.getElementById('reviewRating').value, 10);
+    const visible = document.getElementById('reviewVisible').checked;
+
+    if (!clientName || !reviewText) {
+        alert('Please fill in client name and review text.');
+        return;
+    }
+
+    try {
+        if (id) {
+            const { error } = await window.supabaseClient
+                .from('client_reviews')
+                .update({
+                    client_name: clientName,
+                    review_text: reviewText,
+                    role_or_location: roleOrLocation || null,
+                    rating,
+                    visible
+                })
+                .eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await window.supabaseClient
+                .from('client_reviews')
+                .insert({
+                    client_name: clientName,
+                    review_text: reviewText,
+                    role_or_location: roleOrLocation || null,
+                    rating,
+                    visible
+                });
+            if (error) throw error;
+        }
+        closeReviewModal();
+        loadReviews();
+    } catch (error) {
+        console.error('Error saving review:', error);
+        alert('Error saving review: ' + (error.message || error));
+    }
+}
+
+function editReview(id) {
+    openReviewModal(id);
+}
+
+async function deleteReview(id) {
+    if (!confirm('Delete this review?')) return;
+    try {
+        const { error } = await window.supabaseClient
+            .from('client_reviews')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        loadReviews();
+    } catch (error) {
+        console.error('Error deleting review:', error);
+        alert('Error deleting review');
+    }
+}
+
+window.editReview = editReview;
+window.deleteReview = deleteReview;
 
 // Make functions globally available for onclick handlers
 window.editProject = editProject;

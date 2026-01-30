@@ -340,6 +340,17 @@
     resize: vertical;
 }
 
+.modal-form .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.modal-form .checkbox-label input[type="checkbox"] {
+    width: auto;
+}
+
 .form-actions {
     display: flex;
     gap: 1rem;
