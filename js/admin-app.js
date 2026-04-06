@@ -1,5 +1,6 @@
 // Admin Panel JavaScript (loaded as ES module via admin.js)
 import { validateAdminPassword } from './services/authService.js';
+import { PORTFOLIO_SITE_PROJECTS } from './data/portfolioSiteProjects.js';
 
 let currentEditingId = null;
 let projectImageFile = null;
@@ -273,6 +274,7 @@ function setupEventListeners() {
     
     // Project buttons
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
+    document.getElementById('importSitePortfolioBtn')?.addEventListener('click', importSitePortfolioToSupabase);
     document.getElementById('closeProjectModal').addEventListener('click', closeProjectModal);
     document.getElementById('cancelProjectBtn').addEventListener('click', closeProjectModal);
     document.getElementById('projectForm').addEventListener('submit', handleProjectSubmit);
@@ -400,6 +402,71 @@ function loadData() {
 }
 
 // ========== PROJECTS ==========
+/**
+ * Inserts default portfolio rows into Supabase (same as public site). Skips existing titles.
+ * Removes the placeholder "Test" row. Requires `image_urls` column (see migration-project-images.sql).
+ */
+async function importSitePortfolioToSupabase() {
+    if (
+        !confirm(
+            'This adds all site projects to your database. Rows that already exist (same title) are skipped. The "Test" project will be deleted. Continue?'
+        )
+    ) {
+        return;
+    }
+    if (!window.supabaseClient) {
+        alert('Supabase is not configured.');
+        return;
+    }
+    try {
+        await window.supabaseClient.from('portfolio_projects').delete().eq('title', 'Test');
+
+        const n = PORTFOLIO_SITE_PROJECTS.length;
+        let added = 0;
+        let skipped = 0;
+
+        for (let idx = 0; idx < n; idx++) {
+            const p = PORTFOLIO_SITE_PROJECTS[idx];
+            const { data: existing, error: selErr } = await window.supabaseClient
+                .from('portfolio_projects')
+                .select('id')
+                .eq('title', p.title)
+                .maybeSingle();
+            if (selErr) throw selErr;
+            if (existing) {
+                skipped++;
+                continue;
+            }
+            const created_at = new Date(Date.now() + (n - idx) * 60000).toISOString();
+            const row = {
+                title: p.title,
+                description: p.description,
+                platform: p.platform,
+                technologies: p.technologies,
+                project_link: p.project_link,
+                image_url: p.image_url,
+                image_urls: p.image_urls,
+                created_at,
+            };
+            const { error: insErr } = await window.supabaseClient.from('portfolio_projects').insert([row]);
+            if (insErr) throw insErr;
+            added++;
+        }
+
+        await loadProjects();
+        alert(`Done. Added ${added} project(s). Skipped ${skipped} that were already in the database.`);
+    } catch (e) {
+        console.error(e);
+        alert(
+            'Import failed: ' +
+                (e.message || String(e)) +
+                '\n\nIf the error mentions image_urls, open Supabase → SQL and run database/migrations/migration-project-images.sql first.'
+        );
+    }
+}
+
+window.importSitePortfolioToSupabase = importSitePortfolioToSupabase;
+
 async function loadProjects() {
     const tbody = document.getElementById('projectsTableBody');
     tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading projects...</td></tr>';

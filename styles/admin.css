@@ -154,6 +154,14 @@
     color: var(--text-primary);
 }
 
+.admin-section-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
 /* Table */
 .admin-table-container {
     background: white;

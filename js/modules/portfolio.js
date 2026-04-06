@@ -1,4 +1,5 @@
 import { fetchPublicProjects } from '../services/projectService.js';
+import { LOAD_PORTFOLIO_FROM_SUPABASE } from '../utils/constants.js';
 
 /** @type {unknown[] | null} */
 let portfolioProjectsCache = null;
@@ -128,6 +129,8 @@ export async function initPortfolio() {
     }
 
     try {
+        if (!LOAD_PORTFOLIO_FROM_SUPABASE) return;
+
         const { data, error } = await fetchPublicProjects(12);
         if (error) {
             console.error('Error loading portfolio:', error);
