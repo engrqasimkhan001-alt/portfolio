@@ -1,5 +1,5 @@
-// Admin Panel JavaScript
-const ADMIN_PASSWORD = 'Qasim@123'; // Admin panel password
+// Admin Panel JavaScript (loaded as ES module via admin.js)
+import { validateAdminPassword } from './services/authService.js';
 
 let currentEditingId = null;
 let projectImageFile = null;
@@ -342,7 +342,7 @@ function handleLogin(e) {
     const password = document.getElementById('adminPassword').value;
     const errorDiv = document.getElementById('loginError');
     
-    if (password === ADMIN_PASSWORD) {
+    if (validateAdminPassword(password)) {
         sessionStorage.setItem('adminAuthenticated', 'true');
         showDashboard();
         loadData();

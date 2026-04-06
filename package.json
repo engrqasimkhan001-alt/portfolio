@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "Professional portfolio website for Engr Qasim Khan",
   "scripts": {
-    "dev": "npx http-server -p 8000 -o",
-    "start": "npx http-server -p 8000 -o"
+    "dev": "five-server . --port=8000 --open=/ --wait=150 --ignore=node_modules --ignore=.git",
+    "dev:static": "npx http-server -p 8000 -o",
+    "start": "npm run dev"
   },
   "keywords": [
     "portfolio",
     "website"
   ],
   "author": "Engr Qasim Khan",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "five-server": "^0.4.5"
+  }
 }

@@ -7,9 +7,9 @@
     <meta name="keywords" content="mobile app developer, web developer, iOS developer, Android developer, Flutter developer, freelance developer">
     <meta name="author" content="Engr Qasim Khan">
     <title>Engr Qasim Khan | Mobile & Web App Developer</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="preload" href="styles.css" as="style">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="preload" href="styles/main.css" as="style">
+    <link rel="stylesheet" href="styles/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -266,22 +266,42 @@
                         </div>
                     </div>
                 </div>
-                <div class="portfolio-item" data-project-title="Project Management Dashboard" data-project-platform="Web Application" data-project-description="A comprehensive web-based project management tool with team collaboration features, task tracking, and real-time updates." data-project-technologies="React, Node.js, MongoDB">
-                    <div class="portfolio-image">
+                <div class="portfolio-item" data-project-title="Instaguard CRM System" data-project-platform="Web Application" data-project-link="https://instaguardapp.com/" data-project-image-urls="assets/images/portfolio/instaguard-crm-showcase.png,assets/images/portfolio/instaguard-app-screens.png" data-project-description="End-to-End Sales, QA &amp; Operations Management Platform&#10;&#10;A full-featured CRM platform designed to manage the complete sales lifecycle — from lead generation to conversion and quality assurance.&#10;&#10;The system implements secure role-based access control (RBAC) with Row-Level Security (RLS) to ensure data is accessible only to authorized users.&#10;&#10;It integrates core business functions including sales pipeline management, email automation, Zoom call tracking, and QA workflows — enabling teams to operate efficiently with structured processes and real-time visibility.&#10;&#10;Key features:&#10;• Role-Based Access Control (Admin, Sales, QA, Operations)&#10;• Secure Data Handling with Supabase RLS&#10;• Sales Pipeline &amp; Lead Management System&#10;• Email Automation with Dynamic Templates&#10;• Zoom Call Integration &amp; Recording Playback&#10;• QA Review &amp; Approval Workflow&#10;• Real-Time Dashboard &amp; KPI Tracking" data-project-technologies="React, TypeScript, Supabase, PostgreSQL">
+                    <div class="portfolio-image" style="background-image: url('assets/images/portfolio/instaguard-crm-showcase.png'); background-size: cover; background-position: center;">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">Web Application</span>
                         </div>
                     </div>
                     <div class="portfolio-content">
-                        <h3 class="portfolio-title">Project Management Dashboard</h3>
+                        <h3 class="portfolio-title">Instaguard CRM System</h3>
                         <p class="portfolio-description">
-                            A comprehensive web-based project management tool with team collaboration features, 
-                            task tracking, and real-time updates.
+                            End-to-End Sales, QA &amp; Operations Management Platform — full CRM lifecycle with RBAC, Supabase RLS, pipeline management, email automation, Zoom tracking, and QA workflows.
                         </p>
                         <div class="portfolio-tech">
                             <span class="tech-tag">React</span>
-                            <span class="tech-tag">Node.js</span>
-                            <span class="tech-tag">MongoDB</span>
+                            <span class="tech-tag">TypeScript</span>
+                            <span class="tech-tag">Supabase</span>
+                            <span class="tech-tag">PostgreSQL</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="portfolio-item" data-project-title="Trades Connect Platform" data-project-platform="Web Application" data-project-link="https://www.skilledtradesconnect.com/" data-project-image-urls="assets/images/portfolio/trades-connect-showcase.png,assets/images/portfolio/trades-connect-who-its-for.png,assets/images/portfolio/trades-connect-commitments.png" data-project-description="End-to-End Intern Document Workflow &amp; Role-Based Management System&#10;&#10;A full-featured workflow platform designed to manage intern document lifecycles — from upload and validation to approval and secure release to agencies.&#10;&#10;The system implements a robust role-based access control (RBAC) architecture with Supabase Row-Level Security (RLS), ensuring strict data isolation and secure access across multiple user roles including Interns, Admins, Employers, and Agencies.&#10;&#10;It streamlines complex operational processes including document handling, approval pipelines, user-role management, and secure file distribution — enabling organizations to operate efficiently with full visibility and control.&#10;&#10;Key features:&#10;• Role-Based Access Control (Intern, Admin, Employer, Agency)&#10;• Secure Data Access with Supabase RLS Policies&#10;• Intern Document Upload System (Batch Upload + Progress Tracking)&#10;• Document Workflow (Draft → Submitted → Approved → Released)&#10;• Admin Dashboard with Approval &amp; Bulk Actions&#10;• User Management (Role Assignment, Employer–Intern Mapping)&#10;• Audit Logging System for Activity Tracking&#10;• Employer Dashboard for Intern Monitoring&#10;• Agency Portal with Read-Only Secure Access&#10;• Signed URL File Access (Secure Downloads)&#10;• Realtime Notifications for Admin Actions&#10;• Advanced Validation &amp; Error Handling" data-project-technologies="React, TypeScript, Supabase, PostgreSQL, Edge Functions">
+                    <div class="portfolio-image" style="background-image: url('assets/images/portfolio/trades-connect-showcase.png'); background-size: cover; background-position: center;">
+                        <div class="portfolio-overlay">
+                            <span class="portfolio-platform">Web Application</span>
+                        </div>
+                    </div>
+                    <div class="portfolio-content">
+                        <h3 class="portfolio-title">Trades Connect Platform</h3>
+                        <p class="portfolio-description">
+                            End-to-end intern document workflows with RBAC and Supabase RLS — approvals, multi-role dashboards, audit logging, secure agency access, and signed URL downloads.
+                        </p>
+                        <div class="portfolio-tech">
+                            <span class="tech-tag">React</span>
+                            <span class="tech-tag">TypeScript</span>
+                            <span class="tech-tag">Supabase</span>
+                            <span class="tech-tag">PostgreSQL</span>
+                            <span class="tech-tag">Edge Functions</span>
                         </div>
                     </div>
                 </div>
@@ -742,83 +762,8 @@
         </div>
     </footer>
 
-    <!-- Supabase JS SDK -->
+    <!-- Supabase UMD (must run before ES module; do not use esm.sh here — often breaks locally) -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script>
-        // Initialize Supabase after library loads - make it GLOBAL
-        const SUPABASE_URL = 'https://widshsxgcqmyjobaxkhz.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpZHNoc3hnY3FteWpvYmF4a2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1Njg1ODEsImV4cCI6MjA4NTE0NDU4MX0.9unbbHCwCCqg94oxR-GkzJBwFDdya0MyLEnDXbV5GlM';
-        
-        // Make supabase client globally available
-        window.supabaseClient = null;
-        if (window.supabase && window.supabase.createClient) {
-            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('Supabase initialized successfully');
-            console.log('Client:', window.supabaseClient);
-        } else {
-            console.error('Supabase library failed to load');
-        }
-    </script>
-    <script>
-        // Launch loader: show for at least MIN_MS, then hide when page is ready
-        (function () {
-            var MIN_DISPLAY_MS = 2400;
-            var loader = document.getElementById('appLoader');
-            var progressBar = loader && loader.querySelector('.loader-progress');
-            var start = Date.now();
-            var ready = false;
-
-            function hideLoader() {
-                if (!loader) return;
-                // Reveal page content (nav + home section use .reveal-item with opacity: 0 until .revealed)
-                var revealItems = document.querySelectorAll('.reveal-item');
-                for (var i = 0; i < revealItems.length; i++) {
-                    revealItems[i].classList.add('revealed');
-                }
-                loader.classList.add('loader-hidden');
-                loader.setAttribute('aria-hidden', 'true');
-                setTimeout(function () {
-                    loader.style.display = 'none';
-                }, 650);
-            }
-
-            function tryHide() {
-                var elapsed = Date.now() - start;
-                if (ready && elapsed >= MIN_DISPLAY_MS) hideLoader();
-            }
-
-            if (progressBar) {
-                var progressInterval = setInterval(function () {
-                    var elapsed = Date.now() - start;
-                    var pct = Math.min(100, (elapsed / MIN_DISPLAY_MS) * 98);
-                    progressBar.style.width = pct + '%';
-                    progressBar.setAttribute('aria-valuenow', Math.round(pct));
-                    if (pct >= 98) clearInterval(progressInterval);
-                }, 50);
-            }
-
-            window.addEventListener('load', function () {
-                ready = true;
-                tryHide();
-            });
-            if (document.readyState === 'complete') {
-                ready = true;
-                tryHide();
-            }
-            setTimeout(function () {
-                ready = true;
-                // Fallback: ensure page content is visible even if loader is missing
-                var revealItems = document.querySelectorAll('.reveal-item');
-                for (var i = 0; i < revealItems.length; i++) {
-                    revealItems[i].classList.add('revealed');
-                }
-                tryHide();
-            }, MIN_DISPLAY_MS + 500);
-        })();
-    </script>
-    <script src="script.js" defer></script>
-    <script src="portfolio.js" defer></script>
-    <script src="team.js" defer></script>
-    <script src="reviews.js" defer></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
