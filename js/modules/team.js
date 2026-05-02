@@ -1,4 +1,5 @@
 import { fetchActiveTeamMembers } from '../services/teamService.js';
+import { observeScrollReveal } from './animations.js';
 
 export async function initTeam() {
     const teamGrid = document.getElementById('teamGrid');
@@ -30,7 +31,7 @@ export async function initTeam() {
                     .substring(0, 2);
 
                 return `
-                <div class="team-member fade-in visible">
+                <div class="team-member">
                     <div class="team-avatar">
                         ${
                             member.image_url
@@ -75,6 +76,8 @@ export async function initTeam() {
             `;
             })
             .join('');
+
+        observeScrollReveal(teamGrid.querySelectorAll('.team-member'));
     } catch (err) {
         console.error('Error loading team:', err);
         teamGrid.innerHTML = `<div class="team-placeholder"><p>Error: ${err.message}</p></div>`;

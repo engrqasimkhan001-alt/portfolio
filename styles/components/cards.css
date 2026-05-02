@@ -99,12 +99,47 @@
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s ease;
+    transition:
+        transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        box-shadow 0.45s ease,
+        border-color 0.35s ease;
 }
 
 .portfolio-item:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 32px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-6px);
+    border-color: rgba(99, 102, 241, 0.28);
+    box-shadow:
+        0 20px 40px rgba(99, 102, 241, 0.16),
+        0 8px 16px rgba(139, 92, 246, 0.08);
+}
+
+@keyframes portfolioCardReveal {
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* No global opacity/transform transition here — entrance uses keyframes below */
+.portfolio .portfolio-item.fade-in {
+    transition:
+        transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        box-shadow 0.45s ease,
+        border-color 0.35s ease;
+}
+
+/* Staggered scroll-in (--stagger from portfolio.js); keyframes avoid delaying hover transforms */
+.portfolio .portfolio-item.fade-in.visible {
+    animation: portfolioCardReveal 0.68s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--stagger, 0) * 0.055s);
+    transition:
+        transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        box-shadow 0.45s ease,
+        border-color 0.35s ease;
 }
 
 .portfolio-image {
@@ -115,6 +150,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: scale(1);
+    transform-origin: center center;
+}
+
+.portfolio-item:hover .portfolio-image {
+    transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .portfolio .portfolio-item.fade-in.visible {
+        animation: none;
+        animation-delay: 0s;
+    }
+
+    .portfolio-item:hover .portfolio-image {
+        transform: scale(1);
+    }
 }
 
 .portfolio-overlay {

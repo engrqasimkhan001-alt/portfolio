@@ -42,7 +42,7 @@
                     <div class="admin-header-left">
                         <span class="admin-logo">wOs</span>
                         <h1>Admin Panel</h1>
-                        <span class="admin-ui-build-marker" title="If you do not see this, your browser or CDN is serving an old admin.html">UI 2026.04 · Blogs</span>
+                        <span class="admin-ui-build-marker" title="If you do not see this, your browser or CDN is serving an old admin.html">UI 2026.04 · Website</span>
                     </div>
                     <button id="logoutBtn" class="btn btn-secondary">Logout</button>
                 </div>
@@ -58,6 +58,7 @@
                     <button class="tab-btn" data-tab="messages">Messages</button>
                     <button class="tab-btn" data-tab="reviews">Reviews</button>
                     <button class="tab-btn" data-tab="blogs">Blogs</button>
+                    <button class="tab-btn" data-tab="website">Website</button>
                 </div>
 
                 <!-- Projects Tab -->
@@ -239,6 +240,20 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Website copy (public homepage) -->
+                <div id="websiteTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Website copy</h2>
+                        <button type="button" class="btn btn-primary" id="saveWebsiteContentBtn">Save all</button>
+                    </div>
+                    <p class="form-hint">
+                        Edit text that appears on <code>index.html</code>. Run
+                        <code>database/migrations/migration-site-content.sql</code> in Supabase first. Leave a field empty in the
+                        database to keep the last saved value; reload the public site after saving.
+                    </p>
+                    <div id="websiteFormFields" class="website-form-fields"></div>
                 </div>
             </main>
         </div>
@@ -464,29 +479,33 @@
                 <h2 id="blogModalTitle">Add Blog</h2>
                 <button type="button" class="modal-close" id="closeBlogModal">&times;</button>
             </div>
-            <form id="blogForm" class="modal-form">
+            <form id="blogForm" class="modal-form blog-modal-form">
                 <input type="hidden" id="blogId" name="id">
+                <div class="blog-modal-body-scroll">
                 <div class="form-group">
                     <label for="blogTitle">Title *</label>
-                    <input type="text" id="blogTitle" name="title" required maxlength="500" placeholder="Post title">
+                    <input type="text" id="blogTitle" name="title" required maxlength="500" placeholder="Enter blog title">
                 </div>
-                <div class="form-group">
+                <div class="form-group blog-slug-group">
                     <label for="blogSlug">Slug *</label>
-                    <input type="text" id="blogSlug" name="slug" required maxlength="240" placeholder="url-friendly-slug">
-                    <p class="form-hint">Auto-filled from title; edit anytime. Must be unique.</p>
+                    <div class="blog-slug-row">
+                        <input type="text" id="blogSlug" name="slug" maxlength="240" class="blog-slug-input" placeholder="auto-generated-blog-slug" autocomplete="off">
+                        <button type="button" class="blog-slug-regenerate" id="blogRegenerateSlugBtn" title="Replace slug from current title">Regenerate slug</button>
+                    </div>
+                    <p class="form-hint">Updates from the title until you change this field. Must be unique.</p>
                 </div>
                 <div class="form-group">
                     <label for="blogExcerpt">Excerpt</label>
-                    <textarea id="blogExcerpt" name="excerpt" rows="2" maxlength="2000" placeholder="Short summary for cards"></textarea>
+                    <textarea id="blogExcerpt" name="excerpt" rows="2" maxlength="2000" placeholder="Short summary shown on blog cards"></textarea>
                 </div>
                 <div class="form-group">
                     <label for="blogContent">Content *</label>
-                    <textarea id="blogContent" name="content" rows="12" required placeholder="Full post body (plain text)"></textarea>
+                    <textarea id="blogContent" name="content" rows="12" required placeholder="Write the full blog post content"></textarea>
                 </div>
                 <div class="form-row-blog">
                     <div class="form-group">
                         <label for="blogCategory">Category</label>
-                        <input type="text" id="blogCategory" name="category" maxlength="120" placeholder="e.g. Engineering">
+                        <input type="text" id="blogCategory" name="category" maxlength="120" placeholder="e.g. Engineering, Web Development, Mobile Apps">
                     </div>
                     <div class="form-group">
                         <label for="blogType">Blog type *</label>
@@ -502,11 +521,11 @@
                 </div>
                 <div class="form-group">
                     <label for="blogTags">Tags (comma-separated)</label>
-                    <input type="text" id="blogTags" name="tags" placeholder="react, supabase, mobile">
+                    <input type="text" id="blogTags" name="tags" placeholder="react, supabase, portfolio">
                 </div>
                 <div class="form-group">
                     <label for="blogAuthorName">Author name</label>
-                    <input type="text" id="blogAuthorName" name="author_name" maxlength="200" placeholder="Display name">
+                    <input type="text" id="blogAuthorName" name="author_name" maxlength="200" placeholder="e.g. Engr Qasim Khan">
                 </div>
                 <div class="form-group">
                     <label for="blogCoverImageFile">Cover image (optional)</label>
@@ -539,6 +558,7 @@
                             Featured post
                         </label>
                     </div>
+                </div>
                 </div>
                 <div class="form-actions blog-form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelBlogBtn">Cancel</button>

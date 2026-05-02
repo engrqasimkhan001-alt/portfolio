@@ -1,0 +1,194 @@
+/* Scroll-linked ambient visuals (hero + global tint). See scrollAmbience.js */
+
+.home-parallax-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transform: translate3d(var(--bg-shift-x, 0px), var(--bg-shift-y, 0px), 0)
+        rotate(calc(var(--scroll-t, 0) * 2.5deg));
+    will-change: transform;
+}
+
+.home-parallax-bg__layer {
+    position: absolute;
+    inset: -12%;
+    will-change: transform;
+}
+
+.home-parallax-bg__layer--deep {
+    z-index: 0;
+}
+
+.home-parallax-bg__layer--front {
+    z-index: 2;
+    opacity: 0.9;
+}
+
+.home-parallax-bg__blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+    opacity: 0.55;
+    animation: hpbBlobPulse 14s ease-in-out infinite;
+}
+
+.home-parallax-bg__blob:nth-child(1) {
+    width: min(52vw, 420px);
+    height: min(52vw, 420px);
+    left: -8%;
+    top: 8%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.55) 0%, transparent 70%);
+    animation-delay: 0s;
+}
+
+.home-parallax-bg__blob:nth-child(2) {
+    width: min(44vw, 360px);
+    height: min(44vw, 360px);
+    right: -5%;
+    top: 28%;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, transparent 68%);
+    animation-delay: -4s;
+}
+
+.home-parallax-bg__blob:nth-child(3) {
+    width: min(60vw, 480px);
+    height: min(60vw, 480px);
+    left: 22%;
+    bottom: -18%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(45, 212, 191, 0.12) 45%, transparent 72%);
+    animation-delay: -7s;
+}
+
+@keyframes hpbBlobPulse {
+    0%,
+    100% {
+        transform: scale(1) translate(0, 0);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.08) translate(2%, -1.5%);
+        opacity: 0.65;
+    }
+}
+
+.home-parallax-bg__mesh {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.45;
+    background:
+        radial-gradient(ellipse 80% 55% at 50% -10%, rgba(99, 102, 241, 0.14), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 100% 60%, rgba(139, 92, 246, 0.1), transparent 50%),
+        radial-gradient(ellipse 60% 45% at 0% 90%, rgba(99, 102, 241, 0.08), transparent 50%);
+    mix-blend-mode: multiply;
+}
+
+.home-parallax-bg__ring {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: min(85vw, 620px);
+    height: min(85vw, 620px);
+    margin-left: calc(min(85vw, 620px) / -2);
+    margin-top: calc(min(85vw, 620px) / -2);
+    border-radius: 50%;
+    border: 1px solid rgba(99, 102, 241, 0.12);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+        0 0 80px rgba(99, 102, 241, 0.08);
+    animation: hpbRingSpin 80s linear infinite;
+}
+
+@keyframes hpbRingSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.home-parallax-bg__svg {
+    position: absolute;
+    inset: -5%;
+    width: 110%;
+    height: 110%;
+    opacity: 0.85;
+}
+
+.home-parallax-bg__wire {
+    stroke-dasharray: 14 22;
+    animation: hpbDash 22s linear infinite;
+}
+
+.home-parallax-bg__wire--b {
+    stroke-dasharray: 10 18;
+    animation-duration: 32s;
+    animation-direction: reverse;
+    opacity: 0.75;
+}
+
+@keyframes hpbDash {
+    to {
+        stroke-dashoffset: -600;
+    }
+}
+
+.home-parallax-bg__dot {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hpbTwinkle 4s ease-in-out infinite;
+}
+
+.home-parallax-bg__dot--a {
+    animation-delay: 0s;
+}
+
+.home-parallax-bg__dot--b {
+    animation-delay: 1.2s;
+}
+
+.home-parallax-bg__dot--c {
+    animation-delay: 2.1s;
+}
+
+@keyframes hpbTwinkle {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.95;
+        transform: scale(1.15);
+    }
+}
+
+.home-parallax-bg__grid {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.07;
+    background-image:
+        linear-gradient(rgba(99, 102, 241, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.35) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, black 15%, transparent 72%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-parallax-bg {
+        transform: none !important;
+    }
+
+    .home-parallax-bg__blob,
+    .home-parallax-bg__ring,
+    .home-parallax-bg__wire,
+    .home-parallax-bg__dot {
+        animation: none !important;
+    }
+
+    .home-parallax-bg__layer--deep,
+    .home-parallax-bg__layer--front {
+        transform: none !important;
+    }
+}

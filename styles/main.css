@@ -3,6 +3,8 @@
 @import url('./components/navbar.css');
 @import url('./components/cards.css');
 @import url('./components/blog.css');
+@import url('./components/cursor-hover.css');
+@import url('./components/scroll-ambience.css');
 
 /* Reset and Base Styles */
 * {
@@ -39,7 +41,12 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
     color: var(--text-primary);
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+    background: linear-gradient(
+        calc(128deg + var(--scroll-t, 0) * 38deg),
+        hsl(calc(220 + var(--scroll-t, 0) * 32), 42%, 98.4%) 0%,
+        hsl(calc(268 + var(--scroll-t, 0) * 18), 38%, 96.2%) 46%,
+        hsl(calc(198 + var(--scroll-t, 0) * 28), 36%, 98.1%) 100%
+    );
     background-attachment: fixed;
     overflow-x: hidden;
     min-height: 100vh;
@@ -894,4 +901,13 @@ section {
 .fade-in.visible {
     opacity: 1;
     transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade-in,
+    .fade-in.visible {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
 }

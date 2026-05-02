@@ -1,18 +1,53 @@
 /** Scroll-triggered fade-in and skill bar animation. */
-export function initScrollAnimations() {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px',
-    };
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) entry.target.classList.add('visible');
-        });
-    }, observerOptions);
+const REVEAL_OBSERVER_OPTIONS = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px',
+};
+
+/** @type {IntersectionObserver | null} */
+let scrollRevealObserver = null;
+
+function ensureScrollRevealObserver() {
+    if (!scrollRevealObserver) {
+        scrollRevealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, REVEAL_OBSERVER_OPTIONS);
+    }
+    return scrollRevealObserver;
+}
+
+/**
+ * Same scroll fade-in as the rest of the site: adds `.fade-in`, observes until `.visible`.
+ * Use after injecting nodes (blog cards, Supabase portfolio/team/reviews).
+ */
+export function observeScrollReveal(elements) {
+    const obs = ensureScrollRevealObserver();
+    for (const el of Array.from(elements || [])) {
+        if (!el || el.nodeType !== 1) continue;
+        el.classList.add('fade-in');
+        obs.observe(el);
+    }
+}
+
+export function initScrollAnimations() {
+    const observer = ensureScrollRevealObserver();
 
     const animateElements = document.querySelectorAll(
-        '.skill-category, .portfolio-item, .service-card, .review-card, .about-text, .contact-item'
+        [
+            '.skill-category',
+            '.portfolio-item',
+            '.service-card',
+            '.review-card',
+            '.about-text',
+            '.contact-item',
+            '.section-title',
+            '.section-subtitle',
+            '.blog-filters',
+            '.careers-content',
+        ].join(',')
     );
     animateElements.forEach((el) => {
         el.classList.add('fade-in');

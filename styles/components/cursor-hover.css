@@ -1,0 +1,68 @@
+/* Decorative cursor ring (pointer devices only; see cursorHover.js) */
+#cursor-hover-ring {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    margin-left: -18px;
+    margin-top: -18px;
+    border: 2px solid rgba(99, 102, 241, 0.45);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10050;
+    opacity: 0;
+    transform: scale(1);
+    transition:
+        opacity 0.25s ease,
+        width 0.22s ease,
+        height 0.22s ease,
+        margin 0.22s ease,
+        border-color 0.22s ease,
+        transform 0.22s ease;
+    will-change: left, top, opacity, transform;
+}
+
+#cursor-hover-ring.is-visible {
+    opacity: 1;
+}
+
+#cursor-hover-ring.is-pointer {
+    width: 48px;
+    height: 48px;
+    margin-left: -24px;
+    margin-top: -24px;
+    border-color: rgba(139, 92, 246, 0.65);
+    transform: scale(1.02);
+}
+
+#cursor-hover-ring::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px 0 0 -2.5px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    opacity: 0.9;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+#cursor-hover-ring.is-pointer::after {
+    transform: scale(1.15);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #cursor-hover-ring {
+        display: none !important;
+    }
+}
+
+@media (pointer: coarse) {
+    #cursor-hover-ring {
+        display: none !important;
+    }
+}

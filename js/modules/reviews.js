@@ -1,5 +1,6 @@
 import { fetchVisibleReviews } from '../services/reviewService.js';
 import { escapeHtml } from '../utils/helpers.js';
+import { observeScrollReveal } from './animations.js';
 
 export async function initReviews() {
     const grid = document.getElementById('reviewsGrid');
@@ -23,7 +24,7 @@ export async function initReviews() {
                 const text = escapeHtml(review.review_text || '');
                 const role = escapeHtml(review.role_or_location || '');
                 return `
-                <div class="review-card fade-in">
+                <div class="review-card">
                     <div class="review-stars" aria-label="${rating} out of 5 stars">
                         ${starsHtml(rating)}
                     </div>
@@ -49,16 +50,7 @@ export async function initReviews() {
                 '<span class="star filled">★</span>'.repeat(r) + '<span class="star">★</span>'.repeat(5 - r);
         }
 
-        const cards = grid.querySelectorAll('.review-card');
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) entry.target.classList.add('visible');
-                });
-            },
-            { threshold: 0.1 }
-        );
-        cards.forEach((card) => observer.observe(card));
+        observeScrollReveal(grid.querySelectorAll('.review-card'));
     } catch (err) {
         console.error('Error loading reviews:', err);
     }

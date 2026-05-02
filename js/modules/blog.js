@@ -2,6 +2,7 @@ import { fetchPublishedBlogs } from '../services/blogService.js';
 import { LOAD_BLOGS_FROM_SUPABASE } from '../utils/constants.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { debounce } from '../utils/helpers.js';
+import { observeScrollReveal } from './animations.js';
 
 /** @type {Record<string, unknown>[] | null} */
 let blogsCache = null;
@@ -104,7 +105,7 @@ function renderBlogGrid(posts, q, type, category, tag) {
                 ? `<span class="blog-card-featured" aria-label="Featured post">Featured</span>`
                 : '';
             return `
-            <article class="blog-card fade-in" role="listitem" data-blog-id="${escapeHtml(String(post.id))}">
+            <article class="blog-card" role="listitem" data-blog-id="${escapeHtml(String(post.id))}">
                 <div class="blog-card-cover" style="${coverStyle}">
                     ${featured}
                 </div>
@@ -123,13 +124,15 @@ function renderBlogGrid(posts, q, type, category, tag) {
         })
         .join('');
 
-    grid.querySelectorAll('.blog-card').forEach((card) => {
+    const cards = grid.querySelectorAll('.blog-card');
+    cards.forEach((card) => {
         card.addEventListener('click', () => {
             const id = card.getAttribute('data-blog-id');
             const post = filtered.find((p) => String(p.id) === id);
             if (post) openBlogDetail(post);
         });
     });
+    observeScrollReveal(cards);
 }
 
 function openBlogDetail(post) {
@@ -197,6 +200,8 @@ export async function initBlog() {
     const grid = document.getElementById('blogGrid');
     if (!grid) return;
 
+    console.log('[Blog public] Blog module initialized');
+
     const overlay = document.getElementById('blogDetailOverlay');
     overlay?.querySelector('.blog-detail-backdrop')?.addEventListener('click', closeBlogDetail);
     document.getElementById('blogDetailClose')?.addEventListener('click', closeBlogDetail);
@@ -213,6 +218,8 @@ export async function initBlog() {
     document.getElementById('blogFilterCategory')?.addEventListener('change', applyFiltersAndRender);
     document.getElementById('blogFilterTag')?.addEventListener('change', applyFiltersAndRender);
 
+    console.log('[Blog public] LOAD_BLOGS_FROM_SUPABASE =', LOAD_BLOGS_FROM_SUPABASE);
+
     if (!LOAD_BLOGS_FROM_SUPABASE) {
         grid.innerHTML = '';
         const empty = document.getElementById('blogEmptyState');
@@ -226,31 +233,63 @@ export async function initBlog() {
     try {
         const { data, error } = await fetchPublishedBlogs(120);
         if (error) {
-            console.error('Blog load error:', error);
-            grid.innerHTML = `<p class="blog-empty">Could not load posts. Add the blogs table (see database/migrations/migration-blogs.sql).</p>`;
+            console.error('[Blog public] Supabase error:', error);
+            if (error && typeof error === 'object') {
+                console.error(
+                    '[Blog public] Supabase error details:',
+                    error.message,
+                    error.code ?? '',
+                    error.details ?? ''
+                );
+            }
+            blogsCache = null;
+            grid.innerHTML = '';
+            const empty = document.getElementById('blogEmptyState');
+            if (empty) {
+                const msg =
+                    error && typeof error.message === 'string' && error.message
+                        ? error.message
+                        : 'Could not load posts from Supabase.';
+                empty.textContent = `${msg} See the browser console. If the table is missing, run database/migrations/migration-blogs.sql.`;
+                empty.classList.remove('is-hidden');
+            }
             return;
         }
-        if (!data || data.length === 0) {
+        const rows = Array.isArray(data) ? data : [];
+        console.log('[Blog public] Published blogs fetched:', rows.length);
+
+        if (rows.length === 0) {
             blogsCache = [];
             grid.innerHTML = '';
             const empty = document.getElementById('blogEmptyState');
             if (empty) {
-                empty.textContent = 'No published posts yet. Check back soon.';
+                empty.textContent = 'No published posts yet. Publish a post in Admin → Blogs to show it here.';
                 empty.classList.remove('is-hidden');
             }
             return;
         }
 
-        blogsCache = data;
-        if (typeof window !== 'undefined') window.publicBlogsCache = data;
+        blogsCache = rows;
+        if (typeof window !== 'undefined') window.publicBlogsCache = rows;
 
-        const { categories, tags } = collectCategoriesAndTags(data);
+        const searchInp = document.getElementById('blogSearchInput');
+        const typeSel = document.getElementById('blogFilterType');
+        if (searchInp) searchInp.value = '';
+        if (typeSel) typeSel.value = '';
+
+        const { categories, tags } = collectCategoriesAndTags(rows);
         fillFilterSelect(document.getElementById('blogFilterCategory'), categories, 'All categories');
         fillFilterSelect(document.getElementById('blogFilterTag'), tags, 'All tags');
 
         applyFiltersAndRender();
     } catch (e) {
-        console.error('initBlog:', e);
-        grid.innerHTML = `<p class="blog-empty">Error loading blog.</p>`;
+        console.error('[Blog public] initBlog exception:', e);
+        blogsCache = null;
+        grid.innerHTML = '';
+        const empty = document.getElementById('blogEmptyState');
+        if (empty) {
+            empty.textContent = 'Something went wrong loading the blog. Check the browser console.';
+            empty.classList.remove('is-hidden');
+        }
     }
 }

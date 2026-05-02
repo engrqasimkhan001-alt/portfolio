@@ -1,12 +1,15 @@
 // Admin Panel JavaScript (loaded as ES module via admin.js)
 import { validateAdminPassword } from './services/authService.js';
 import { PORTFOLIO_SITE_PROJECTS } from './data/portfolioSiteProjects.js';
+import { SITE_CONTENT_FIELDS, fetchSiteContentMap } from './services/siteContentService.js';
 
 let currentEditingId = null;
 let teamImageFile = null;
 let blogCoverFile = null;
 let blogCoverBlobUrl = null;
 let blogSlugManuallyEdited = false;
+let blogSlugInputFromScript = false;
+let blogTitleSlugDebounceTimer = null;
 let blogPublishedAtExisting = null;
 let blogExistingCoverUrl = null;
 let cropper = null;
@@ -14,6 +17,7 @@ let cropPreviewRaf = null;
 let cropZoomSliderLast = 100;
 let cropZoomSliderDragging = false;
 let cropToolbarBound = false;
+let websiteContentFormBuilt = false;
 
 function scheduleCropPreviewThumb() {
     if (cropPreviewRaf) cancelAnimationFrame(cropPreviewRaf);
@@ -696,6 +700,7 @@ function setupEventListeners() {
     // Project buttons
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('importSitePortfolioBtn')?.addEventListener('click', importSitePortfolioToSupabase);
+    document.getElementById('saveWebsiteContentBtn')?.addEventListener('click', () => void handleSaveWebsiteContent());
     document.getElementById('closeProjectModal').addEventListener('click', closeProjectModal);
     document.getElementById('cancelProjectBtn').addEventListener('click', closeProjectModal);
     document.getElementById('projectForm').addEventListener('submit', handleProjectSubmit);
@@ -719,9 +724,15 @@ function setupEventListeners() {
     document.getElementById('blogModal')?.addEventListener('click', (e) => {
         if (e.target.id === 'blogModal') closeBlogModal();
     });
-    document.getElementById('blogTitle')?.addEventListener('input', syncBlogSlugFromTitle);
+    document.getElementById('blogTitle')?.addEventListener('input', scheduleBlogSlugSyncFromTitle);
+    document.getElementById('blogTitle')?.addEventListener('blur', flushBlogSlugSyncFromTitle);
     document.getElementById('blogSlug')?.addEventListener('input', () => {
+        if (blogSlugInputFromScript) return;
         blogSlugManuallyEdited = true;
+    });
+    document.getElementById('blogRegenerateSlugBtn')?.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        regenerateBlogSlugFromTitle();
     });
     
     // Team buttons
@@ -800,6 +811,79 @@ function handleLogout() {
     document.getElementById('loginForm').reset();
 }
 
+function buildWebsiteContentForm() {
+    if (websiteContentFormBuilt) return;
+    const root = document.getElementById('websiteFormFields');
+    if (!root) return;
+    websiteContentFormBuilt = true;
+    root.innerHTML = '';
+    for (const f of SITE_CONTENT_FIELDS) {
+        const wrap = document.createElement('div');
+        wrap.className = 'form-group';
+        const lab = document.createElement('label');
+        lab.setAttribute('for', `site_${f.key}`);
+        lab.textContent = f.label;
+        wrap.appendChild(lab);
+        let input;
+        if (f.type === 'textarea') {
+            input = document.createElement('textarea');
+            input.rows = f.rows || 4;
+        } else {
+            input = document.createElement('input');
+            input.type = f.type === 'url' ? 'url' : 'text';
+        }
+        input.id = `site_${f.key}`;
+        input.name = f.key;
+        wrap.appendChild(input);
+        root.appendChild(wrap);
+    }
+}
+
+async function loadWebsiteContent() {
+    buildWebsiteContentForm();
+    if (!window.supabaseClient) {
+        alert('Supabase is not configured.');
+        return;
+    }
+    try {
+        const { data: map, error } = await fetchSiteContentMap();
+        if (error) throw error;
+        for (const f of SITE_CONTENT_FIELDS) {
+            const el = document.getElementById(`site_${f.key}`);
+            if (el) el.value = map[f.key] || '';
+        }
+    } catch (e) {
+        console.error(e);
+        alert(
+            'Could not load website copy. Run database/migrations/migration-site-content.sql in the Supabase SQL editor, then refresh.'
+        );
+    }
+}
+
+async function handleSaveWebsiteContent() {
+    if (!window.supabaseClient) {
+        alert('Supabase is not configured.');
+        return;
+    }
+    const now = new Date().toISOString();
+    const rows = SITE_CONTENT_FIELDS.map((f) => {
+        const el = document.getElementById(`site_${f.key}`);
+        return {
+            key: f.key,
+            value: el ? String(el.value || '').trim() : '',
+            updated_at: now,
+        };
+    });
+    try {
+        const { error } = await window.supabaseClient.from('site_content').upsert(rows, { onConflict: 'key' });
+        if (error) throw error;
+        alert('Website copy saved. Open or refresh the homepage to see updates.');
+    } catch (e) {
+        console.error(e);
+        alert('Save failed: ' + (e.message || String(e)));
+    }
+}
+
 // Switch tabs
 function switchTab(tabName) {
     // Update tab buttons
@@ -829,6 +913,8 @@ function switchTab(tabName) {
         loadReviews();
     } else if (tabName === 'blogs') {
         loadBlogs();
+    } else if (tabName === 'website') {
+        loadWebsiteContent();
     }
 }
 
@@ -1945,21 +2031,54 @@ window.deleteReview = deleteReview;
 
 // ========== BLOGS ==========
 function slugifyTitle(title) {
-    return String(title || '')
+    let s = String(title || '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '') || 'post';
+        .trim();
+    s = s.replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return s;
+}
+
+function setBlogSlugValue(value) {
+    const slugEl = document.getElementById('blogSlug');
+    if (!slugEl) return;
+    blogSlugInputFromScript = true;
+    slugEl.value = value;
+    queueMicrotask(() => {
+        blogSlugInputFromScript = false;
+    });
 }
 
 function syncBlogSlugFromTitle() {
     if (blogSlugManuallyEdited) return;
     const titleEl = document.getElementById('blogTitle');
-    const slugEl = document.getElementById('blogSlug');
-    if (!titleEl || !slugEl) return;
-    slugEl.value = slugifyTitle(titleEl.value);
+    if (!titleEl) return;
+    const raw = titleEl.value;
+    if (!raw.trim()) {
+        setBlogSlugValue('');
+        return;
+    }
+    setBlogSlugValue(slugifyTitle(raw));
+}
+
+function scheduleBlogSlugSyncFromTitle() {
+    clearTimeout(blogTitleSlugDebounceTimer);
+    blogTitleSlugDebounceTimer = setTimeout(() => {
+        blogTitleSlugDebounceTimer = null;
+        syncBlogSlugFromTitle();
+    }, 180);
+}
+
+function flushBlogSlugSyncFromTitle() {
+    clearTimeout(blogTitleSlugDebounceTimer);
+    blogTitleSlugDebounceTimer = null;
+    syncBlogSlugFromTitle();
+}
+
+function regenerateBlogSlugFromTitle() {
+    blogSlugManuallyEdited = false;
+    syncBlogSlugFromTitle();
 }
 
 function estimateReadingMinutes(text) {
@@ -2086,7 +2205,7 @@ async function openBlogModal(blogId = null) {
         revokeBlogCoverState();
         document.getElementById('blogStatus').value = 'draft';
         document.getElementById('blogFeatured').checked = false;
-        syncBlogSlugFromTitle();
+        flushBlogSlugSyncFromTitle();
     }
     modal.classList.add('active');
     setTimeout(() => setupFileUploadListeners(), 100);
@@ -2098,6 +2217,8 @@ function closeBlogModal() {
         closeCropModal();
     }
     document.getElementById('blogModal')?.classList.remove('active');
+    clearTimeout(blogTitleSlugDebounceTimer);
+    blogTitleSlugDebounceTimer = null;
     document.getElementById('blogForm')?.reset();
     revokeBlogCoverState();
     blogSlugManuallyEdited = false;
@@ -2112,7 +2233,7 @@ async function loadBlogData(id) {
 
         document.getElementById('blogId').value = data.id;
         document.getElementById('blogTitle').value = data.title || '';
-        document.getElementById('blogSlug').value = data.slug || '';
+        setBlogSlugValue(data.slug || '');
         blogSlugManuallyEdited = true;
         document.getElementById('blogExcerpt').value = data.excerpt || '';
         document.getElementById('blogContent').value = data.content || '';
@@ -2177,11 +2298,15 @@ async function handleBlogSubmit(e, forcedStatus) {
     }
     if (!slug) {
         slug = slugifyTitle(title);
-        document.getElementById('blogSlug').value = slug;
+        if (!slug) {
+            alert('Slug is required. Enter a title to generate one or type a slug manually.');
+            return;
+        }
+        setBlogSlugValue(slug);
     }
     slug = slug.trim();
     if (!slug) {
-        alert('Slug is required. Add a title or enter a slug manually.');
+        alert('Slug is required. Enter a title or type a slug manually.');
         return;
     }
     if (status !== 'draft' && status !== 'published') {

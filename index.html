@@ -36,7 +36,7 @@
         <div class="container">
             <div class="nav-brand">
                 <a href="#home" class="brand-link">
-                    <span class="brand-logo">wOs</span>
+                    <span class="brand-logo" data-site="nav_brand">wOs</span>
                 </a>
             </div>
             <ul class="nav-menu" id="navMenu">
@@ -61,39 +61,65 @@
 
     <!-- Home Section -->
     <section id="home" class="home">
+        <div class="home-parallax-bg" aria-hidden="true">
+            <div class="home-parallax-bg__layer home-parallax-bg__layer--deep">
+                <span class="home-parallax-bg__blob"></span>
+                <span class="home-parallax-bg__blob"></span>
+                <span class="home-parallax-bg__blob"></span>
+            </div>
+            <div class="home-parallax-bg__mesh"></div>
+            <div class="home-parallax-bg__layer home-parallax-bg__layer--front">
+                <div class="home-parallax-bg__ring"></div>
+                <svg class="home-parallax-bg__svg" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                        <linearGradient id="hpbStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="rgb(99,102,241)" stop-opacity="0.45"/>
+                            <stop offset="50%" stop-color="rgb(139,92,246)" stop-opacity="0.25"/>
+                            <stop offset="100%" stop-color="rgb(99,102,241)" stop-opacity="0.15"/>
+                        </linearGradient>
+                    </defs>
+                    <path class="home-parallax-bg__wire" fill="none" stroke="url(#hpbStroke)" stroke-width="1.2" d="M-40,180 C140,80 280,320 420,200 S720,120 940,260"/>
+                    <path class="home-parallax-bg__wire home-parallax-bg__wire--b" fill="none" stroke="url(#hpbStroke)" stroke-width="0.9" d="M60,520 Q260,380 440,480 T820,420"/>
+                    <circle class="home-parallax-bg__dot home-parallax-bg__dot--a" cx="140" cy="120" r="4" fill="rgba(99,102,241,0.35)"/>
+                    <circle class="home-parallax-bg__dot home-parallax-bg__dot--b" cx="720" cy="200" r="3" fill="rgba(139,92,246,0.4)"/>
+                    <circle class="home-parallax-bg__dot home-parallax-bg__dot--c" cx="480" cy="560" r="5" fill="rgba(99,102,241,0.25)"/>
+                </svg>
+            </div>
+            <div class="home-parallax-bg__grid"></div>
+        </div>
         <div class="container">
             <div class="home-content page-reveal">
                 <div class="company-badge reveal-item">
-                    <span class="company-logo">wOs</span>
-                    <span class="company-name">Wave Of Solution Technology</span>
+                    <span class="company-logo" data-site="badge_logo">wOs</span>
+                    <span class="company-name" data-site="badge_tagline">Wave Of Solution Technology</span>
                 </div>
                 <h1 class="home-title">
-                    <span class="greeting reveal-item">Hello, I'm</span>
-                    <span class="name reveal-item">Engr Qasim Khan</span>
-                    <span class="role reveal-item">Mobile App Developer & Web Developer</span>
+                    <span class="greeting reveal-item" data-site="hero_greeting">Hello, I'm</span>
+                    <span class="name reveal-item" data-site="hero_name">Engr Qasim Khan</span>
+                    <span class="role reveal-item" data-site="hero_role">Mobile App Developer & Web Developer</span>
                 </h1>
                 <p class="home-location reveal-item">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                    Islamabad, Pakistan
+                    <span data-site="hero_location">Islamabad, Pakistan</span>
                 </p>
-                <p class="home-description reveal-item">
+                <p class="home-description reveal-item" data-site="hero_description">
                     I create exceptional mobile and web applications that solve real-world problems. 
                     Specialized in iOS, Android, and full-stack development with a focus on quality, 
                     performance, and user experience.
                 </p>
                 <div class="home-buttons reveal-item">
-                    <a href="#contact" class="btn btn-primary">Hire Me</a>
-                    <a href="#portfolio" class="btn btn-secondary">View Portfolio</a>
+                    <a href="#contact" class="btn btn-primary"><span data-site="hero_btn_hire">Hire Me</span></a>
+                    <a href="#portfolio" class="btn btn-secondary"><span data-site="hero_btn_portfolio">View Portfolio</span></a>
                 </div>
                 <div class="home-social reveal-item">
-                    <a href="https://www.upwork.com/freelancers/~yourprofile" target="_blank" rel="noopener noreferrer" class="social-link">
+                    <a href="https://www.upwork.com/freelancers/~yourprofile" target="_blank" rel="noopener noreferrer" class="social-link" data-site="hero_upwork_url">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06 1.492 0 2.703 1.212 2.703 2.703-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.546-1.405 0-2.543-1.14-2.545-2.546V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z"/>
                         </svg>
-                        Upwork Profile
+                        <span data-site="hero_upwork_label">Upwork Profile</span>
                     </a>
                 </div>
             </div>
@@ -107,26 +133,12 @@
     <!-- About Section -->
     <section id="about" class="about">
         <div class="container">
-            <h2 class="section-title">About Me</h2>
+            <h2 class="section-title" data-site="section_about_title">About Me</h2>
             <div class="about-content">
                 <div class="about-text">
-                    <p>
-                        I'm a dedicated software developer with a passion for creating high-quality mobile and web applications. 
-                        With extensive experience in both iOS and Android development, as well as full-stack web solutions, 
-                        I bring a comprehensive approach to every project.
-                    </p>
-                    <p>
-                        I'm the founder and lead developer at <strong>Wave Of Solution Technology (wOs)</strong>, based in 
-                        <strong>Islamabad, Pakistan</strong>. As a freelancer on Upwork, I've had the privilege of working 
-                        with clients from around the world, delivering solutions that exceed expectations. My focus is on building 
-                        reliable, scalable applications that not only meet technical requirements but also provide exceptional 
-                        user experiences.
-                    </p>
-                    <p>
-                        What sets me apart is my commitment to clear communication, timely delivery, and ongoing support. 
-                        I believe in building long-term relationships with clients by solving their problems effectively and 
-                        maintaining their applications for continued success.
-                    </p>
+                    <p><span data-site="about_p1">I'm a dedicated software developer with a passion for creating high-quality mobile and web applications. With extensive experience in both iOS and Android development, as well as full-stack web solutions, I bring a comprehensive approach to every project.</span></p>
+                    <p><span data-site="about_p2">I'm the founder and lead developer at Wave Of Solution Technology (wOs), based in Islamabad, Pakistan. As a freelancer on Upwork, I've had the privilege of working with clients from around the world, delivering solutions that exceed expectations. My focus is on building reliable, scalable applications that not only meet technical requirements but also provide exceptional user experiences.</span></p>
+                    <p><span data-site="about_p3">What sets me apart is my commitment to clear communication, timely delivery, and ongoing support. I believe in building long-term relationships with clients by solving their problems effectively and maintaining their applications for continued success.</span></p>
                     <div class="about-highlights">
                         <div class="highlight-item">
                             <span class="highlight-number">100%</span>
@@ -149,7 +161,7 @@
     <!-- Skills Section -->
     <section id="skills" class="skills">
         <div class="container">
-            <h2 class="section-title">Skills & Technologies</h2>
+            <h2 class="section-title" data-site="section_skills_title">Skills & Technologies</h2>
             <div class="skills-grid">
                 <div class="skill-category">
                     <h3 class="skill-category-title">Mobile Development</h3>
@@ -245,8 +257,8 @@
     <!-- Portfolio Section -->
     <section id="portfolio" class="portfolio">
         <div class="container">
-            <h2 class="section-title">Portfolio</h2>
-            <p class="section-subtitle">A selection of my recent work</p>
+            <h2 class="section-title" data-site="section_portfolio_title">Portfolio</h2>
+            <p class="section-subtitle" data-site="section_portfolio_subtitle">A selection of my recent work</p>
             <div class="portfolio-grid" id="portfolioGrid">
                 <div class="portfolio-item" data-project-title="E-Commerce Mobile App" data-project-platform="Mobile App" data-project-description="A full-featured e-commerce application for iOS and Android with real-time inventory management, secure payment integration, and user-friendly interface." data-project-technologies="Flutter, Firebase, Stripe API">
                     <div class="portfolio-image">
@@ -408,8 +420,8 @@
     <!-- Blog Section -->
     <section id="blog" class="blog-section">
         <div class="container">
-            <h2 class="section-title">Blog</h2>
-            <p class="section-subtitle">Articles, tutorials, and updates from the workshop</p>
+            <h2 class="section-title" data-site="section_blog_title">Blog</h2>
+            <p class="section-subtitle" data-site="section_blog_subtitle">Articles, tutorials, and updates from the workshop</p>
             <div class="blog-filters">
                 <input type="search" id="blogSearchInput" class="blog-search" placeholder="Search title, excerpt, or content…" aria-label="Search posts">
                 <select id="blogFilterType" aria-label="Filter by type">
@@ -491,8 +503,8 @@
     <!-- Services Section -->
     <section id="services" class="services">
         <div class="container">
-            <h2 class="section-title">Services</h2>
-            <p class="section-subtitle">What I can do for you</p>
+            <h2 class="section-title" data-site="section_services_title">Services</h2>
+            <p class="section-subtitle" data-site="section_services_subtitle">What I can do for you</p>
             <div class="services-grid">
                 <div class="service-card">
                     <div class="service-icon">
@@ -558,8 +570,8 @@
          To add a new review, copy one full <div class="review-card">...</div> block and paste before </div> of reviews-grid, then edit the text. -->
     <section id="reviews" class="reviews">
         <div class="container">
-            <h2 class="section-title">Client Reviews</h2>
-            <p class="section-subtitle">What clients say about working with me</p>
+            <h2 class="section-title" data-site="section_reviews_title">Client Reviews</h2>
+            <p class="section-subtitle" data-site="section_reviews_subtitle">What clients say about working with me</p>
             <div class="reviews-grid" id="reviewsGrid">
                 <div class="review-card fade-in">
                     <div class="review-stars" aria-label="5 out of 5 stars">
@@ -626,8 +638,8 @@
     <!-- Team Section -->
     <section id="team" class="team">
         <div class="container">
-            <h2 class="section-title">Our Team</h2>
-            <p class="section-subtitle">Meet the talented people behind Wave Of Solution Technology</p>
+            <h2 class="section-title" data-site="section_team_title">Our Team</h2>
+            <p class="section-subtitle" data-site="section_team_subtitle">Meet the talented people behind Wave Of Solution Technology</p>
             <div class="team-grid" id="teamGrid">
                 <!-- Team members will be loaded from database -->
                 <div class="team-placeholder">
@@ -640,8 +652,8 @@
     <!-- Careers / Apply for Job Section -->
     <section id="careers" class="careers">
         <div class="container">
-            <h2 class="section-title">Join Our Team</h2>
-            <p class="section-subtitle">We're always looking for talented developers to join Wave Of Solution Technology</p>
+            <h2 class="section-title" data-site="section_careers_title">Join Our Team</h2>
+            <p class="section-subtitle" data-site="section_careers_subtitle">We're always looking for talented developers to join Wave Of Solution Technology</p>
             <div class="careers-content">
                 <div class="careers-info">
                     <h3>Open Positions</h3>
@@ -746,8 +758,8 @@
     <!-- Contact Section -->
     <section id="contact" class="contact">
         <div class="container">
-            <h2 class="section-title">Get In Touch</h2>
-            <p class="section-subtitle">Let's discuss your next project</p>
+            <h2 class="section-title" data-site="section_contact_title">Get In Touch</h2>
+            <p class="section-subtitle" data-site="section_contact_subtitle">Let's discuss your next project</p>
             <div class="contact-content">
                 <div class="contact-info">
                     <div class="contact-item">
@@ -797,7 +809,7 @@
                         </div>
                         <div class="contact-details">
                             <h4>Company</h4>
-                            <span>Wave Of Solution Technology (wOs)</span><br>
+                            <span data-site="contact_company_line">Wave Of Solution Technology (wOs)</span><br>
                             <a href="mailto:wostechofficial@gmail.com">wostechofficial@gmail.com</a>
                         </div>
                     </div>
@@ -826,11 +838,11 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-brand">
-                    <span class="footer-logo">wOs</span>
-                    <span class="footer-company">Wave Of Solution Technology</span>
+                    <span class="footer-logo" data-site="footer_logo">wOs</span>
+                    <span class="footer-company" data-site="footer_company">Wave Of Solution Technology</span>
                 </div>
-                <p>&copy; 2024 Engr Qasim Khan. All rights reserved.</p>
-                <p class="footer-note">Mobile App Developer & Web Developer | Islamabad, Pakistan</p>
+                <p data-site="footer_rights">&copy; 2024 Engr Qasim Khan. All rights reserved.</p>
+                <p class="footer-note" data-site="footer_note">Mobile App Developer & Web Developer | Islamabad, Pakistan</p>
             </div>
         </div>
     </footer>

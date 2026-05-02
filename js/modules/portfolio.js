@@ -1,5 +1,6 @@
 import { fetchPublicProjects } from '../services/projectService.js';
 import { LOAD_PORTFOLIO_FROM_SUPABASE } from '../utils/constants.js';
+import { observeScrollReveal } from './animations.js';
 
 /** @type {unknown[] | null} */
 let portfolioProjectsCache = null;
@@ -137,6 +138,12 @@ function closeProjectDetail() {
 }
 
 /** Add +N badge to static HTML cards that list multiple URLs in `data-project-image-urls`. */
+function applyPortfolioCardStagger(grid) {
+    grid.querySelectorAll('.portfolio-item').forEach((el, i) => {
+        el.style.setProperty('--stagger', String(i));
+    });
+}
+
 function decorateStaticPortfolioImageBadges(grid) {
     grid.querySelectorAll('.portfolio-item').forEach((card) => {
         const raw = card.getAttribute('data-project-image-urls') || '';
@@ -185,6 +192,7 @@ export async function initPortfolio() {
 
     try {
         if (!LOAD_PORTFOLIO_FROM_SUPABASE) {
+            applyPortfolioCardStagger(portfolioGrid);
             decorateStaticPortfolioImageBadges(portfolioGrid);
             return;
         }
@@ -221,7 +229,7 @@ export async function initPortfolio() {
                 const desc = escapeHtml(project.description);
                 const platform = escapeHtml(project.platform);
                 return `
-                <div class="portfolio-item fade-in" data-index="${index}">
+                <div class="portfolio-item" data-index="${index}">
                     <div class="portfolio-image" style="${mainImage ? `background-image: url('${mainImageCss}'); background-size: cover; background-position: center;` : ''}">
                         <div class="portfolio-overlay">
                             <span class="portfolio-platform">${platform}</span>
@@ -244,16 +252,8 @@ export async function initPortfolio() {
             })
             .join('');
 
-        const items = portfolioGrid.querySelectorAll('.portfolio-item');
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) entry.target.classList.add('visible');
-                });
-            },
-            { threshold: 0.1 }
-        );
-        items.forEach((item) => observer.observe(item));
+        applyPortfolioCardStagger(portfolioGrid);
+        observeScrollReveal(portfolioGrid.querySelectorAll('.portfolio-item'));
     } catch (err) {
         console.error('Error loading portfolio:', err);
     }
