@@ -3,11 +3,129 @@ import { validateAdminPassword } from './services/authService.js';
 import { PORTFOLIO_SITE_PROJECTS } from './data/portfolioSiteProjects.js';
 
 let currentEditingId = null;
-let projectImageFile = null;
 let teamImageFile = null;
+let blogCoverFile = null;
+let blogCoverBlobUrl = null;
+let blogSlugManuallyEdited = false;
+let blogPublishedAtExisting = null;
+let blogExistingCoverUrl = null;
 let cropper = null;
+let cropPreviewRaf = null;
+let cropZoomSliderLast = 100;
+let cropZoomSliderDragging = false;
+let cropToolbarBound = false;
+
+function scheduleCropPreviewThumb() {
+    if (cropPreviewRaf) cancelAnimationFrame(cropPreviewRaf);
+    cropPreviewRaf = requestAnimationFrame(() => {
+        cropPreviewRaf = null;
+        if (!cropper) return;
+        const thumb = document.getElementById('cropPreviewThumb');
+        if (!thumb) return;
+        try {
+            const c = cropper.getCroppedCanvas({
+                maxWidth: 220,
+                maxHeight: 220,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!c || !c.width) return;
+            thumb.style.backgroundImage = `url(${c.toDataURL('image/jpeg', 0.88)})`;
+        } catch {
+            /* ignore */
+        }
+    });
+}
+
+function syncCropZoomSliderFromCropper() {
+    if (!cropper || cropZoomSliderDragging) return;
+    const img = cropper.getImageData();
+    const canvas = cropper.getCanvasData();
+    if (!img.width || !canvas.width) return;
+    const ratio = canvas.width / img.width;
+    const pct = Math.round(Math.min(300, Math.max(100, ratio * 100)));
+    const range = document.getElementById('cropZoomRange');
+    if (range) {
+        range.value = String(pct);
+        cropZoomSliderLast = pct;
+    }
+}
+
+function setActiveCropRatioButton(mode) {
+    document.querySelectorAll('.crop-ratio-btn').forEach((b) => {
+        b.classList.toggle('is-active', b.dataset.aspect === mode);
+    });
+}
+
+function setupCropToolbarListeners() {
+    if (cropToolbarBound) return;
+    cropToolbarBound = true;
+
+    const range = document.getElementById('cropZoomRange');
+    if (range) {
+        range.addEventListener('pointerdown', () => {
+            cropZoomSliderDragging = true;
+        });
+        range.addEventListener('pointerup', () => {
+            cropZoomSliderDragging = false;
+            cropZoomSliderLast = range.valueAsNumber;
+        });
+        range.addEventListener('input', () => {
+            if (!cropper) return;
+            const v = range.valueAsNumber;
+            const delta = (v - cropZoomSliderLast) * 0.004;
+            cropper.zoom(delta);
+            cropZoomSliderLast = v;
+        });
+    }
+
+    document.getElementById('cropZoomIn')?.addEventListener('click', () => {
+        if (cropper) cropper.zoom(0.12);
+    });
+    document.getElementById('cropZoomOut')?.addEventListener('click', () => {
+        if (cropper) cropper.zoom(-0.12);
+    });
+    document.getElementById('cropRotateLeft')?.addEventListener('click', () => {
+        if (cropper) cropper.rotate(-90);
+    });
+    document.getElementById('cropRotateRight')?.addEventListener('click', () => {
+        if (cropper) cropper.rotate(90);
+    });
+    document.getElementById('cropResetBtn')?.addEventListener('click', () => {
+        if (!cropper) return;
+        cropper.reset();
+        cropper.setAspectRatio(NaN);
+        setActiveCropRatioButton('free');
+        const r = document.getElementById('cropZoomRange');
+        if (r) {
+            r.value = '100';
+            cropZoomSliderLast = 100;
+        }
+        scheduleCropPreviewThumb();
+    });
+
+    document.querySelector('.crop-ratio-btns')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.crop-ratio-btn');
+        if (!btn || !cropper) return;
+        const key = btn.dataset.aspect || 'free';
+        setActiveCropRatioButton(key);
+        let ar = NaN;
+        if (key === '1') ar = 1;
+        else if (key === '1.7778') ar = 16 / 9;
+        else if (key === '1.3333') ar = 4 / 3;
+        cropper.setAspectRatio(ar);
+        scheduleCropPreviewThumb();
+    });
+}
 let currentCropType = null; // 'project' or 'team'
-let projectImageUrls = []; // Ordered list of image URLs for current project
+
+/** @type {{ previewUrl: string, remoteUrl: string | null, uploadFile: File | null, originalFile: File | null, fileName: string }[]} */
+let projectImageItems = [];
+let pendingProjectCropFiles = [];
+let pendingProjectCropIndex = 0;
+let pendingReeditIndex = null;
+let cropSessionOriginalFile = null;
+let cropModalLoadId = 0;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,39 +164,178 @@ function setupFileUploadListeners() {
     if (teamFileInput) {
         teamFileInput.onchange = (e) => handleFileSelect(e, 'team');
     }
+
+    const blogCoverInput = document.getElementById('blogCoverImageFile');
+    if (blogCoverInput) {
+        blogCoverInput.onchange = (e) => handleFileSelect(e, 'blog');
+    }
+}
+
+const MAX_PROJECT_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function resetProjectFilePicker() {
+    const input = document.getElementById('projectImageFile');
+    if (input) input.value = '';
+    const fn = document.getElementById('projectFileName');
+    if (fn) fn.textContent = 'No file chosen';
+}
+
+function updateProjectFileInputLabel() {
+    const fn = document.getElementById('projectFileName');
+    if (!fn) return;
+    if (pendingProjectCropFiles.length && pendingProjectCropIndex < pendingProjectCropFiles.length) {
+        fn.textContent = `Cropping ${pendingProjectCropIndex + 1} of ${pendingProjectCropFiles.length}…`;
+        return;
+    }
+    const n = projectImageItems.length;
+    fn.textContent = n ? `${n} image(s) in gallery` : 'No file chosen';
+}
+
+function escapeAttr(s) {
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function revokeProjectItemBlob(item) {
+    if (item?.previewUrl?.startsWith('blob:')) {
+        try {
+            URL.revokeObjectURL(item.previewUrl);
+        } catch {
+            /* ignore */
+        }
+    }
+}
+
+function revokeAllProjectImageBlobs() {
+    projectImageItems.forEach(revokeProjectItemBlob);
+}
+
+function normalizeImageUrlsFromProjectRow(data) {
+    let raw = data?.image_urls;
+    if (typeof raw === 'string') {
+        try {
+            raw = JSON.parse(raw);
+        } catch {
+            raw = [];
+        }
+    }
+    let list = [];
+    if (Array.isArray(raw) && raw.length) {
+        list = raw.map(String).filter(Boolean);
+    } else if (data?.image_url) {
+        list = [String(data.image_url)];
+    }
+    return dedupeUrlsPreserveOrder(list);
+}
+
+/** Same URL twice (e.g. legacy `image_url` duplicated in `image_urls`) — keep first occurrence only. */
+function dedupeUrlsPreserveOrder(urls) {
+    const seen = new Set();
+    const out = [];
+    for (const u of urls) {
+        const s = typeof u === 'string' ? u.trim() : String(u ?? '').trim();
+        if (!s || seen.has(s)) continue;
+        seen.add(s);
+        out.push(s);
+    }
+    return out;
 }
 
 // Handle file selection
 function handleFileSelect(event, type) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+    if (type === 'team') {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+        if (file.size > MAX_PROJECT_IMAGE_BYTES) {
+            alert('Image size must be less than 5MB');
+            return;
+        }
+        currentCropType = 'team';
+        openCropModal(file);
+        event.target.value = '';
         return;
     }
-    
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Image size must be less than 5MB');
+
+    if (type === 'blog') {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+        if (file.size > MAX_PROJECT_IMAGE_BYTES) {
+            alert('Image size must be less than 5MB');
+            return;
+        }
+        currentCropType = 'blog';
+        openCropModal(file);
+        event.target.value = '';
         return;
     }
-    
-    // Store the file temporarily
-    currentCropType = type;
-    
-    // Show crop modal
-    openCropModal(file);
+
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+
+    if (!files.length) return;
+
+    const valid = [];
+    const skipped = [];
+    for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+            skipped.push(file.name || 'unnamed');
+            console.warn('Skipped non-image file:', file.name);
+            continue;
+        }
+        if (file.size > MAX_PROJECT_IMAGE_BYTES) {
+            skipped.push(file.name || 'unnamed');
+            console.warn('Skipped file over 5MB:', file.name);
+            continue;
+        }
+        valid.push(file);
+    }
+
+    if (!valid.length) {
+        alert('No valid images selected. Use image files under 5MB each.');
+        return;
+    }
+
+    if (skipped.length) {
+        console.warn(
+            skipped.length === 1
+                ? 'Skipped file (not an image or over 5MB):'
+                : `Skipped ${skipped.length} files (not images or over 5MB):`,
+            skipped.join(', ')
+        );
+        const msg =
+            skipped.length === 1
+                ? `1 file was skipped (not an image or over 5MB). Cropping ${valid.length} image(s).`
+                : `${skipped.length} files were skipped (not images or over 5MB). Cropping ${valid.length} image(s).`;
+        alert(msg);
+    }
+
+    pendingProjectCropFiles = valid;
+    pendingProjectCropIndex = 0;
+    pendingReeditIndex = null;
+    currentCropType = 'project';
+    updateProjectFileInputLabel();
+    openCropModal(valid[0]);
 }
 
-// Remove project image
+// Clear file picker (gallery thumbnails stay unless removed individually)
 function removeProjectImage() {
-    projectImageFile = null;
-    document.getElementById('projectImageFile').value = '';
-    document.getElementById('projectFileName').textContent = 'No file chosen';
-    document.getElementById('projectImagePreview').style.display = 'none';
-    document.getElementById('projectPreviewImg').src = '';
+    resetProjectFilePicker();
+    const cropOpen = document.getElementById('cropModal')?.classList.contains('active');
+    if (!cropOpen) {
+        pendingProjectCropFiles = [];
+        pendingProjectCropIndex = 0;
+    }
+    updateProjectFileInputLabel();
 }
 
 // Remove team image
@@ -92,93 +349,261 @@ function removeTeamImage() {
 
 // Open crop modal
 function openCropModal(file) {
+    cropSessionOriginalFile = file instanceof File ? file : null;
+
     const modal = document.getElementById('cropModal');
     const cropImage = document.getElementById('cropImage');
-    
-    // Read file and show in crop modal
+    const thumb = document.getElementById('cropPreviewThumb');
+    const range = document.getElementById('cropZoomRange');
+    const loadId = ++cropModalLoadId;
+
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+
+    if (thumb) {
+        thumb.style.backgroundImage = '';
+    }
+    if (range) {
+        range.value = '100';
+        cropZoomSliderLast = 100;
+    }
+    setActiveCropRatioButton('free');
+
     const reader = new FileReader();
     reader.onload = (e) => {
-        cropImage.src = e.target.result;
-        modal.classList.add('active');
-        
-        // Initialize cropper
+        if (loadId !== cropModalLoadId) {
+            return;
+        }
         if (cropper) {
             cropper.destroy();
+            cropper = null;
         }
-        
-        cropper = new Cropper(cropImage, {
-            aspectRatio: 1, // Square crop for profile images
-            viewMode: 1,
-            dragMode: 'move',
-            autoCropArea: 0.8,
-            restore: false,
-            guides: true,
-            center: true,
-            highlight: false,
-            cropBoxMovable: true,
-            cropBoxResizable: true,
-            toggleDragModeOnDblclick: false,
+        cropImage.removeAttribute('style');
+        cropImage.src = '';
+        cropImage.src = e.target.result;
+        modal.classList.add('active');
+
+        requestAnimationFrame(() => {
+            cropper = new Cropper(cropImage, {
+                viewMode: 2,
+                dragMode: 'move',
+                autoCropArea: 1,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: true,
+                background: true,
+                movable: true,
+                rotatable: true,
+                scalable: true,
+                zoomable: true,
+                zoomOnTouch: true,
+                zoomOnWheel: true,
+                wheelZoomRatio: 0.085,
+                responsive: true,
+                checkOrientation: true,
+                toggleDragModeOnDblclick: false,
+                aspectRatio: NaN,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                minCropBoxWidth: 20,
+                minCropBoxHeight: 20,
+                crop: () => {
+                    scheduleCropPreviewThumb();
+                    syncCropZoomSliderFromCropper();
+                },
+                ready: () => {
+                    scheduleCropPreviewThumb();
+                    syncCropZoomSliderFromCropper();
+                },
+            });
         });
     };
     reader.readAsDataURL(file);
 }
 
 // Close crop modal
-function closeCropModal() {
+function closeCropModal(options = {}) {
+    const { keepProjectCropQueue = false } = options;
     const modal = document.getElementById('cropModal');
     modal.classList.remove('active');
+    if (cropPreviewRaf) {
+        cancelAnimationFrame(cropPreviewRaf);
+        cropPreviewRaf = null;
+    }
+    const thumb = document.getElementById('cropPreviewThumb');
+    if (thumb) thumb.style.backgroundImage = '';
+    const range = document.getElementById('cropZoomRange');
+    if (range) {
+        range.value = '100';
+        cropZoomSliderLast = 100;
+    }
     if (cropper) {
         cropper.destroy();
         cropper = null;
     }
+    if (!keepProjectCropQueue && currentCropType === 'project' && pendingProjectCropFiles.length) {
+        pendingProjectCropFiles = [];
+        pendingProjectCropIndex = 0;
+        updateProjectFileInputLabel();
+    }
+    if (!keepProjectCropQueue) {
+        pendingReeditIndex = null;
+    }
     currentCropType = null;
+    cropSessionOriginalFile = null;
 }
 
 // Apply crop
 function applyCrop() {
     if (!cropper || !currentCropType) return;
-    
-    // Get cropped canvas
+
     const canvas = cropper.getCroppedCanvas({
-        width: 800,
-        height: 800,
+        maxWidth: 4096,
+        maxHeight: 4096,
+        fillColor: '#fff',
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high',
     });
-    
-    // Convert canvas to blob
+    if (!canvas || !canvas.width) {
+        alert('Could not read crop. Try resetting or adjusting the crop area.');
+        return;
+    }
+
     canvas.toBlob((blob) => {
         if (!blob) {
             alert('Error creating cropped image');
             return;
         }
-        
-        // Create a File object from the blob
+
         const fileName = `cropped-${Date.now()}.jpg`;
         const croppedFile = new File([blob], fileName, { type: 'image/jpeg' });
-        
-        // Store the cropped file
-        if (currentCropType === 'project') {
-            projectImageFile = croppedFile;
-            document.getElementById('projectFileName').textContent = fileName;
-        } else {
+
+        if (currentCropType === 'team') {
             teamImageFile = croppedFile;
             document.getElementById('teamFileName').textContent = fileName;
-        }
-        
-        // Show preview
-        const previewUrl = URL.createObjectURL(blob);
-        if (currentCropType === 'project') {
-            document.getElementById('projectPreviewImg').src = previewUrl;
-            document.getElementById('projectImagePreview').style.display = 'block';
-        } else {
+            const previewUrl = URL.createObjectURL(blob);
             document.getElementById('teamPreviewImg').src = previewUrl;
             document.getElementById('teamImagePreview').style.display = 'block';
+            closeCropModal();
+            return;
         }
-        
-        // Close crop modal
-        closeCropModal();
+
+        if (currentCropType === 'blog') {
+            blogCoverFile = croppedFile;
+            if (blogCoverBlobUrl) {
+                try {
+                    URL.revokeObjectURL(blogCoverBlobUrl);
+                } catch {
+                    /* ignore */
+                }
+            }
+            blogCoverBlobUrl = URL.createObjectURL(blob);
+            const prev = document.getElementById('blogCoverPreview');
+            const img = document.getElementById('blogCoverPreviewImg');
+            const fn = document.getElementById('blogCoverFileName');
+            if (img) img.src = blogCoverBlobUrl;
+            if (prev) prev.style.display = 'block';
+            if (fn) fn.textContent = croppedFile.name;
+            const paste = document.getElementById('blogCoverPasteUrl');
+            if (paste) paste.value = '';
+            closeCropModal();
+            return;
+        }
+
+        // project — re-crop existing gallery slot
+        if (pendingReeditIndex !== null) {
+            const idx = pendingReeditIndex;
+            const old = projectImageItems[idx];
+            if (old?.previewUrl?.startsWith('blob:')) {
+                revokeProjectItemBlob(old);
+            }
+            const previewUrl = URL.createObjectURL(blob);
+            projectImageItems[idx] = {
+                previewUrl,
+                remoteUrl: null,
+                uploadFile: croppedFile,
+                originalFile: cropSessionOriginalFile || croppedFile,
+                fileName: cropSessionOriginalFile?.name || croppedFile.name,
+            };
+            pendingReeditIndex = null;
+            closeCropModal();
+            renderProjectImagesList();
+            updateProjectFileInputLabel();
+            return;
+        }
+
+        const previewUrl = URL.createObjectURL(blob);
+        projectImageItems.push({
+            previewUrl,
+            remoteUrl: null,
+            uploadFile: croppedFile,
+            originalFile: cropSessionOriginalFile || croppedFile,
+            fileName: cropSessionOriginalFile?.name || croppedFile.name,
+        });
+
+        pendingProjectCropIndex += 1;
+        const hasMore = pendingProjectCropIndex < pendingProjectCropFiles.length;
+
+        closeCropModal({ keepProjectCropQueue: true });
+
+        renderProjectImagesList();
+        updateProjectFileInputLabel();
+
+        if (hasMore) {
+            currentCropType = 'project';
+            openCropModal(pendingProjectCropFiles[pendingProjectCropIndex]);
+        } else {
+            pendingProjectCropFiles = [];
+            pendingProjectCropIndex = 0;
+            resetProjectFilePicker();
+            updateProjectFileInputLabel();
+        }
     }, 'image/jpeg', 0.9);
+}
+
+async function reCropProjectImage(index) {
+    if (document.getElementById('cropModal')?.classList.contains('active') && currentCropType === 'blog') {
+        alert('Finish the blog cover crop first.');
+        return;
+    }
+    if (pendingProjectCropFiles.length) {
+        alert('Finish or cancel the current image crop batch first.');
+        return;
+    }
+    const it = projectImageItems[index];
+    if (!it) return;
+
+    let sourceFile = null;
+    if (it.originalFile instanceof File) {
+        sourceFile = it.originalFile;
+    } else if (it.uploadFile instanceof File) {
+        sourceFile = it.uploadFile;
+    } else {
+        const u = it.remoteUrl || it.previewUrl;
+        if (!u || u.startsWith('blob:')) {
+            alert('Cannot load this image for editing.');
+            return;
+        }
+        try {
+            const r = await fetch(u, { mode: 'cors' });
+            if (!r.ok) throw new Error(String(r.status));
+            const b = await r.blob();
+            if (!b.type.startsWith('image/')) throw new Error('Not an image');
+            sourceFile = new File([b], it.fileName || 'image.jpg', { type: b.type || 'image/jpeg' });
+            it.originalFile = sourceFile;
+        } catch (e) {
+            console.warn('reCropProjectImage fetch failed:', e);
+            alert('Could not load image for editing (network or CORS). Add a new image instead.');
+            return;
+        }
+    }
+
+    pendingReeditIndex = index;
+    currentCropType = 'project';
+    openCropModal(sourceFile);
 }
 
 // Upload image to Supabase Storage with progress
@@ -229,10 +654,6 @@ async function uploadImage(file, bucket, folder, progressCallback) {
         return null;
     }
 }
-
-// Make functions globally available
-window.removeProjectImage = removeProjectImage;
-window.removeTeamImage = removeTeamImage;
 
 // Check if user is authenticated
 function checkAuth() {
@@ -287,6 +708,21 @@ function setupEventListeners() {
     if (cancelReviewBtn) cancelReviewBtn.addEventListener('click', closeReviewModal);
     const reviewForm = document.getElementById('reviewForm');
     if (reviewForm) reviewForm.addEventListener('submit', handleReviewSubmit);
+
+    document.getElementById('addBlogBtn')?.addEventListener('click', () => openBlogModal());
+    document.getElementById('closeBlogModal')?.addEventListener('click', closeBlogModal);
+    document.getElementById('cancelBlogBtn')?.addEventListener('click', closeBlogModal);
+    document.getElementById('blogForm')?.addEventListener('submit', (e) => handleBlogSubmit(e, null));
+    document.getElementById('blogSaveDraftBtn')?.addEventListener('click', (e) => handleBlogSubmit(e, 'draft'));
+    document.getElementById('blogPublishBtn')?.addEventListener('click', (e) => handleBlogSubmit(e, 'published'));
+    document.getElementById('removeBlogCoverBtn')?.addEventListener('click', () => removeBlogCover());
+    document.getElementById('blogModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'blogModal') closeBlogModal();
+    });
+    document.getElementById('blogTitle')?.addEventListener('input', syncBlogSlugFromTitle);
+    document.getElementById('blogSlug')?.addEventListener('input', () => {
+        blogSlugManuallyEdited = true;
+    });
     
     // Team buttons
     document.getElementById('addTeamBtn').addEventListener('click', () => openTeamModal());
@@ -336,6 +772,8 @@ function setupEventListeners() {
     if (positionFilter) {
         positionFilter.addEventListener('change', loadApplications);
     }
+
+    setupCropToolbarListeners();
 }
 
 // Handle login
@@ -389,6 +827,8 @@ function switchTab(tabName) {
         loadMessages();
     } else if (tabName === 'reviews') {
         loadReviews();
+    } else if (tabName === 'blogs') {
+        loadBlogs();
     }
 }
 
@@ -399,6 +839,7 @@ function loadData() {
     loadApplications();
     loadMessages();
     loadReviews();
+    loadBlogs();
 }
 
 // ========== PROJECTS ==========
@@ -510,11 +951,17 @@ async function loadProjects() {
 
 function openProjectModal(projectId = null) {
     currentEditingId = projectId;
-    projectImageUrls = [];
+    revokeAllProjectImageBlobs();
+    projectImageItems = [];
+    pendingProjectCropFiles = [];
+    pendingProjectCropIndex = 0;
+    pendingReeditIndex = null;
+    resetProjectFilePicker();
+
     const modal = document.getElementById('projectModal');
     const form = document.getElementById('projectForm');
     const title = document.getElementById('projectModalTitle');
-    
+
     if (projectId) {
         title.textContent = 'Edit Project';
         loadProjectData(projectId);
@@ -523,10 +970,11 @@ function openProjectModal(projectId = null) {
         form.reset();
         document.getElementById('projectId').value = '';
         renderProjectImagesList();
+        updateProjectFileInputLabel();
     }
-    
+
     modal.classList.add('active');
-    
+
     setTimeout(() => {
         setupFileUploadListeners();
     }, 100);
@@ -536,43 +984,49 @@ function renderProjectImagesList() {
     const listEl = document.getElementById('projectImagesList');
     if (!listEl) return;
     const emptyText = listEl.getAttribute('data-empty-text') || 'No images yet.';
-    
-    if (!projectImageUrls.length) {
+
+    if (!projectImageItems.length) {
         listEl.innerHTML = `<div class="project-images-empty">${emptyText}</div>`;
         listEl.classList.remove('has-items');
         return;
     }
-    
+
     listEl.classList.add('has-items');
-    listEl.innerHTML = projectImageUrls.map((url, index) => `
+    listEl.innerHTML = projectImageItems
+        .map((item, index) => {
+            const url = escapeAttr(item.previewUrl);
+            const safeName = escapeAttr(item.fileName || `Image ${index + 1}`);
+            return `
         <div class="project-image-item" draggable="true" data-index="${index}">
             <span class="project-image-drag" title="Drag to reorder">⋮⋮</span>
-            <img src="${url}" alt="Project image ${index + 1}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 fill=%22%23999%22 text-anchor=%22middle%22 dy=%22.3em%22>?</text></svg>'">
+            <img src="${url}" alt="${safeName}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 fill=%22%23999%22 text-anchor=%22middle%22 dy=%22.3em%22>?</text></svg>'">
             <button type="button" class="project-image-remove" onclick="removeProjectImageByIndex(${index})" title="Remove">✕</button>
-        </div>
-    `).join('');
-    
+            <button type="button" class="project-image-edit" onclick="reCropProjectImage(${index})" title="Edit crop">Crop</button>
+        </div>`;
+        })
+        .join('');
+
     setupProjectImagesDragDrop();
 }
 
 function setupProjectImagesDragDrop() {
     const listEl = document.getElementById('projectImagesList');
     if (!listEl) return;
-    
+
     const items = listEl.querySelectorAll('.project-image-item');
     let draggedIndex = null;
-    
+
     items.forEach((item, index) => {
         item.setAttribute('data-index', index);
         item.addEventListener('dragstart', (e) => {
             draggedIndex = index;
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
+            e.dataTransfer.setData('text/plain', String(index));
             item.classList.add('dragging');
         });
         item.addEventListener('dragend', () => {
             item.classList.remove('dragging');
-            listEl.querySelectorAll('.project-image-item').forEach(i => i.classList.remove('drag-over'));
+            listEl.querySelectorAll('.project-image-item').forEach((i) => i.classList.remove('drag-over'));
             draggedIndex = null;
         });
         item.addEventListener('dragover', (e) => {
@@ -585,26 +1039,39 @@ function setupProjectImagesDragDrop() {
             e.preventDefault();
             item.classList.remove('drag-over');
             if (draggedIndex === null || draggedIndex === index) return;
-            const urls = [...projectImageUrls];
-            const [removed] = urls.splice(draggedIndex, 1);
-            urls.splice(index, 0, removed);
-            projectImageUrls = urls;
+            const next = [...projectImageItems];
+            const [removed] = next.splice(draggedIndex, 1);
+            next.splice(index, 0, removed);
+            projectImageItems = next;
             renderProjectImagesList();
         });
     });
 }
 
 function removeProjectImageByIndex(index) {
-    projectImageUrls.splice(index, 1);
+    const [removed] = projectImageItems.splice(index, 1);
+    if (removed) revokeProjectItemBlob(removed);
     renderProjectImagesList();
+    updateProjectFileInputLabel();
 }
 
 window.removeProjectImageByIndex = removeProjectImageByIndex;
 
 function closeProjectModal() {
+    const cropModal = document.getElementById('cropModal');
+    if (cropModal?.classList.contains('active')) {
+        closeCropModal();
+    }
     document.getElementById('projectModal').classList.remove('active');
+    revokeAllProjectImageBlobs();
+    projectImageItems = [];
+    pendingProjectCropFiles = [];
+    pendingProjectCropIndex = 0;
+    pendingReeditIndex = null;
+    resetProjectFilePicker();
     document.getElementById('projectForm').reset();
     currentEditingId = null;
+    renderProjectImagesList();
 }
 
 async function loadProjectData(id) {
@@ -624,16 +1091,20 @@ async function loadProjectData(id) {
         document.getElementById('projectTechnologies').value = data.technologies;
         document.getElementById('projectImageUrl').value = '';
         document.getElementById('projectLink').value = data.project_link || '';
-        
-        // Support both image_urls (array) and legacy image_url
-        if (data.image_urls && Array.isArray(data.image_urls) && data.image_urls.length > 0) {
-            projectImageUrls = [...data.image_urls];
-        } else if (data.image_url) {
-            projectImageUrls = [data.image_url];
-        } else {
-            projectImageUrls = [];
-        }
+
+        const urls = normalizeImageUrlsFromProjectRow(data);
+        projectImageItems = urls.map((url) => {
+            const fileName = url.split('/').pop() || 'image';
+            return {
+                previewUrl: url,
+                remoteUrl: url,
+                uploadFile: null,
+                originalFile: null,
+                fileName,
+            };
+        });
         renderProjectImagesList();
+        updateProjectFileInputLabel();
     } catch (error) {
         console.error('Error loading project:', error);
         alert('Error loading project data');
@@ -655,42 +1126,77 @@ async function handleProjectSubmit(e) {
             throw new Error('Supabase not configured');
         }
         
-        // Add pasted URL to list if provided
         const pastedUrl = document.getElementById('projectImageUrl').value.trim();
-        if (pastedUrl) projectImageUrls.push(pastedUrl);
-        
-        // Handle image upload if file selected
-        if (projectImageFile) {
-            const progressDiv = document.getElementById('projectUploadProgress');
-            const progressBar = document.getElementById('projectProgressBar');
-            const progressText = document.getElementById('projectProgressText');
-            progressDiv.style.display = 'block';
-            
-            submitBtn.textContent = 'Uploading image...';
-            const progressFill = document.getElementById('projectProgressFill');
-            const uploadedUrl = await uploadImage(projectImageFile, 'images', 'projects', (progress) => {
-                if (progressFill) progressFill.style.width = progress + '%';
-                if (progress < 50) progressText.textContent = 'Uploading... ' + progress + '%';
-                else if (progress < 100) progressText.textContent = 'Processing... ' + progress + '%';
-                else progressText.textContent = 'Complete!';
+        if (pastedUrl) {
+            const fileName = pastedUrl.split('/').pop() || 'image';
+            projectImageItems.push({
+                previewUrl: pastedUrl,
+                remoteUrl: pastedUrl,
+                uploadFile: null,
+                originalFile: null,
+                fileName,
             });
-            
-            setTimeout(() => {
-                progressDiv.style.display = 'none';
-                const fill = document.getElementById('projectProgressFill');
-                if (fill) fill.style.width = '0%';
-            }, 1000);
-            
-            if (uploadedUrl) projectImageUrls.push(uploadedUrl);
+            document.getElementById('projectImageUrl').value = '';
         }
-        
+
+        const pendingUploads = projectImageItems.filter((it) => it.uploadFile);
+        if (pendingUploads.length) {
+            const progressDiv = document.getElementById('projectUploadProgress');
+            const progressText = document.getElementById('projectProgressText');
+            const progressFill = document.getElementById('projectProgressFill');
+            progressDiv.style.display = 'block';
+
+            try {
+                let uploadDone = 0;
+                for (let i = 0; i < projectImageItems.length; i++) {
+                    const item = projectImageItems[i];
+                    if (!item.uploadFile) continue;
+
+                    uploadDone += 1;
+                    submitBtn.textContent = `Uploading image ${uploadDone} of ${pendingUploads.length}…`;
+
+                    const uploadedUrl = await uploadImage(item.uploadFile, 'images', 'projects', (progress) => {
+                        const base = ((uploadDone - 1) / pendingUploads.length) * 100;
+                        const slice = (1 / pendingUploads.length) * 100;
+                        const fillPct = base + (progress / 100) * slice;
+                        if (progressFill) progressFill.style.width = fillPct + '%';
+                        if (progress < 50) progressText.textContent = `Uploading ${uploadDone}/${pendingUploads.length}… ${Math.round(progress)}%`;
+                        else if (progress < 100) progressText.textContent = `Processing ${uploadDone}/${pendingUploads.length}… ${Math.round(progress)}%`;
+                        else progressText.textContent = 'Complete!';
+                    });
+
+                    if (!uploadedUrl) {
+                        throw new Error('Image upload failed');
+                    }
+                    if (item.previewUrl?.startsWith('blob:')) {
+                        revokeProjectItemBlob(item);
+                    }
+                    item.previewUrl = uploadedUrl;
+                    item.remoteUrl = uploadedUrl;
+                    item.uploadFile = null;
+                    item.originalFile = null;
+                }
+            } finally {
+                progressDiv.style.display = 'none';
+                if (progressFill) progressFill.style.width = '0%';
+            }
+        }
+
+        const rawFinal = projectImageItems
+            .map((it) => {
+                const u = (it.remoteUrl || it.previewUrl || '').trim();
+                return u;
+            })
+            .filter((u) => u && !u.startsWith('blob:'));
+        const finalUrls = dedupeUrlsPreserveOrder(rawFinal);
+
         const formData = {
             title: document.getElementById('projectTitle').value.trim(),
             description: document.getElementById('projectDescription').value.trim(),
             platform: document.getElementById('projectPlatform').value,
             technologies: document.getElementById('projectTechnologies').value.trim(),
-            image_url: projectImageUrls[0] || null,
-            image_urls: projectImageUrls,
+            image_url: finalUrls.length ? finalUrls[0] : null,
+            image_urls: finalUrls,
             project_link: document.getElementById('projectLink').value.trim() || null,
         };
         
@@ -711,11 +1217,7 @@ async function handleProjectSubmit(e) {
         }
         
         if (result.error) throw result.error;
-        
-        // Reset file input
-        projectImageFile = null;
-        removeProjectImage();
-        
+
         closeProjectModal();
         loadProjects();
         alert(projectId ? 'Project updated successfully!' : 'Project added successfully!');
@@ -1441,6 +1943,336 @@ async function deleteReview(id) {
 window.editReview = editReview;
 window.deleteReview = deleteReview;
 
+// ========== BLOGS ==========
+function slugifyTitle(title) {
+    return String(title || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || 'post';
+}
+
+function syncBlogSlugFromTitle() {
+    if (blogSlugManuallyEdited) return;
+    const titleEl = document.getElementById('blogTitle');
+    const slugEl = document.getElementById('blogSlug');
+    if (!titleEl || !slugEl) return;
+    slugEl.value = slugifyTitle(titleEl.value);
+}
+
+function estimateReadingMinutes(text) {
+    const words = String(text || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length;
+    return Math.max(1, Math.ceil(words / 200));
+}
+
+function parseBlogTagsInput(s) {
+    return String(s || '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+}
+
+function revokeBlogCoverState() {
+    blogCoverFile = null;
+    if (blogCoverBlobUrl) {
+        try {
+            URL.revokeObjectURL(blogCoverBlobUrl);
+        } catch {
+            /* ignore */
+        }
+        blogCoverBlobUrl = null;
+    }
+    const prev = document.getElementById('blogCoverPreview');
+    const img = document.getElementById('blogCoverPreviewImg');
+    if (img) img.src = '';
+    if (prev) prev.style.display = 'none';
+    const fi = document.getElementById('blogCoverImageFile');
+    if (fi) fi.value = '';
+    const fn = document.getElementById('blogCoverFileName');
+    if (fn) fn.textContent = 'No file chosen';
+}
+
+function removeBlogCover() {
+    revokeBlogCoverState();
+    blogExistingCoverUrl = null;
+    const paste = document.getElementById('blogCoverPasteUrl');
+    if (paste) paste.value = '';
+}
+
+async function ensureUniqueBlogSlug(rawSlug, excludeId) {
+    let base = slugifyTitle(rawSlug);
+    if (!base) base = 'post';
+    base = base.slice(0, 200);
+    let candidate = base;
+    for (let n = 0; n < 80; n++) {
+        const { data, error } = await window.supabaseClient.from('blogs').select('id').eq('slug', candidate).limit(2);
+        if (error) throw error;
+        if (!data || data.length === 0) return candidate;
+        if (data.length === 1 && excludeId != null && String(data[0].id) === String(excludeId)) return candidate;
+        candidate = `${base}-${Date.now().toString(36)}-${n}`.slice(0, 240);
+    }
+    throw new Error('Could not resolve a unique slug');
+}
+
+async function loadBlogs() {
+    const tbody = document.getElementById('blogsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading blogs...</td></tr>';
+
+    try {
+        if (!window.supabaseClient) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Supabase not configured</td></tr>';
+            return;
+        }
+
+        const { data, error } = await window.supabaseClient.from('blogs').select('*').order('updated_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="7" class="loading">No blog posts yet. Run migration-blogs.sql in Supabase, then click Add Blog.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data
+            .map((b) => {
+                const pub = b.published_at ? new Date(b.published_at).toLocaleString() : '—';
+                return `
+            <tr>
+                <td><strong>${escapeHtml(b.title)}</strong></td>
+                <td>${escapeHtml(b.type || '')}</td>
+                <td>${escapeHtml(b.category || '—')}</td>
+                <td>${escapeHtml(b.status || '')}</td>
+                <td>${b.featured ? 'Yes' : 'No'}</td>
+                <td>${escapeHtml(pub)}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button type="button" class="btn-small btn-edit" onclick="editBlog(${b.id})">Edit</button>
+                        <button type="button" class="btn-small btn-delete" onclick="deleteBlog(${b.id})">Delete</button>
+                    </div>
+                </td>
+            </tr>`;
+            })
+            .join('');
+    } catch (err) {
+        console.error('Error loading blogs:', err);
+        tbody.innerHTML =
+            '<tr><td colspan="7" class="loading">Error loading blogs. Run database/migrations/migration-blogs.sql in Supabase.</td></tr>';
+    }
+}
+
+async function openBlogModal(blogId = null) {
+    const modal = document.getElementById('blogModal');
+    const form = document.getElementById('blogForm');
+    const title = document.getElementById('blogModalTitle');
+    if (!modal || !form || !title) return;
+
+    if (blogId) {
+        title.textContent = 'Edit Blog';
+        await loadBlogData(blogId);
+    } else {
+        title.textContent = 'Add Blog';
+        form.reset();
+        document.getElementById('blogId').value = '';
+        blogSlugManuallyEdited = false;
+        blogPublishedAtExisting = null;
+        blogExistingCoverUrl = null;
+        revokeBlogCoverState();
+        document.getElementById('blogStatus').value = 'draft';
+        document.getElementById('blogFeatured').checked = false;
+        syncBlogSlugFromTitle();
+    }
+    modal.classList.add('active');
+    setTimeout(() => setupFileUploadListeners(), 100);
+}
+
+function closeBlogModal() {
+    const cropModal = document.getElementById('cropModal');
+    if (cropModal?.classList.contains('active')) {
+        closeCropModal();
+    }
+    document.getElementById('blogModal')?.classList.remove('active');
+    document.getElementById('blogForm')?.reset();
+    revokeBlogCoverState();
+    blogSlugManuallyEdited = false;
+    blogPublishedAtExisting = null;
+    blogExistingCoverUrl = null;
+}
+
+async function loadBlogData(id) {
+    try {
+        const { data, error } = await window.supabaseClient.from('blogs').select('*').eq('id', id).single();
+        if (error) throw error;
+
+        document.getElementById('blogId').value = data.id;
+        document.getElementById('blogTitle').value = data.title || '';
+        document.getElementById('blogSlug').value = data.slug || '';
+        blogSlugManuallyEdited = true;
+        document.getElementById('blogExcerpt').value = data.excerpt || '';
+        document.getElementById('blogContent').value = data.content || '';
+        document.getElementById('blogCategory').value = data.category || '';
+        document.getElementById('blogType').value = data.type || 'Article';
+        let tagsArr = [];
+        if (Array.isArray(data.tags)) {
+            tagsArr = data.tags.map(String).filter(Boolean);
+        } else if (typeof data.tags === 'string') {
+            tagsArr = parseBlogTagsInput(data.tags);
+        }
+        document.getElementById('blogTags').value = tagsArr.join(', ');
+        document.getElementById('blogAuthorName').value = data.author_name || '';
+        document.getElementById('blogStatus').value = data.status === 'published' ? 'published' : 'draft';
+        document.getElementById('blogFeatured').checked = !!data.featured;
+        document.getElementById('blogCoverPasteUrl').value = '';
+
+        blogPublishedAtExisting = data.published_at || null;
+        revokeBlogCoverState();
+        if (data.cover_image_url) {
+            blogExistingCoverUrl = data.cover_image_url;
+            const prev = document.getElementById('blogCoverPreview');
+            const img = document.getElementById('blogCoverPreviewImg');
+            const fn = document.getElementById('blogCoverFileName');
+            if (img) img.src = data.cover_image_url;
+            if (prev) prev.style.display = 'block';
+            if (fn) fn.textContent = 'Current cover';
+        } else {
+            blogExistingCoverUrl = null;
+        }
+    } catch (e) {
+        console.error('loadBlogData:', e);
+        alert('Error loading blog');
+    }
+}
+
+async function handleBlogSubmit(e, forcedStatus) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+    const id = document.getElementById('blogId').value;
+    const title = document.getElementById('blogTitle').value.trim();
+    let slug = document.getElementById('blogSlug').value.trim();
+    const excerpt = document.getElementById('blogExcerpt').value.trim();
+    const content = document.getElementById('blogContent').value.trim();
+    const category = document.getElementById('blogCategory').value.trim();
+    const blogType = document.getElementById('blogType').value;
+    const tags = parseBlogTagsInput(document.getElementById('blogTags').value);
+    const author_name = document.getElementById('blogAuthorName').value.trim() || null;
+    const featured = document.getElementById('blogFeatured').checked;
+    const status = forcedStatus || document.getElementById('blogStatus').value;
+    if (forcedStatus) {
+        document.getElementById('blogStatus').value = forcedStatus;
+    }
+
+    if (!title) {
+        alert('Title is required.');
+        return;
+    }
+    if (!content) {
+        alert('Content is required.');
+        return;
+    }
+    if (!slug) {
+        slug = slugifyTitle(title);
+        document.getElementById('blogSlug').value = slug;
+    }
+    slug = slug.trim();
+    if (!slug) {
+        alert('Slug is required. Add a title or enter a slug manually.');
+        return;
+    }
+    if (status !== 'draft' && status !== 'published') {
+        alert('Invalid status.');
+        return;
+    }
+
+    try {
+        if (!window.supabaseClient) throw new Error('Supabase not configured');
+
+        slug = await ensureUniqueBlogSlug(slug, id || null);
+
+        const reading_time = estimateReadingMinutes(content);
+        const nowIso = new Date().toISOString();
+
+        let cover_image_url = null;
+        const pasteCover = document.getElementById('blogCoverPasteUrl').value.trim();
+
+        if (blogCoverFile) {
+            const uploadedUrl = await uploadImage(blogCoverFile, 'images', 'blogs', null);
+            if (!uploadedUrl) throw new Error('Cover image upload failed');
+            cover_image_url = uploadedUrl;
+        } else if (pasteCover) {
+            cover_image_url = pasteCover;
+        } else {
+            cover_image_url = blogExistingCoverUrl;
+        }
+
+        let published_at = blogPublishedAtExisting;
+        if (status === 'published') {
+            published_at = blogPublishedAtExisting || nowIso;
+        }
+
+        const row = {
+            title,
+            slug,
+            excerpt: excerpt || null,
+            content,
+            category: category || null,
+            tags,
+            type: blogType,
+            cover_image_url,
+            cover_image_urls: null,
+            author_name,
+            status,
+            featured,
+            reading_time,
+            updated_at: nowIso,
+            published_at,
+        };
+
+        if (id) {
+            const { error } = await window.supabaseClient.from('blogs').update(row).eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await window.supabaseClient.from('blogs').insert({
+                ...row,
+                created_at: nowIso,
+            });
+            if (error) throw error;
+        }
+
+        closeBlogModal();
+        loadBlogs();
+        alert(id ? 'Blog updated.' : 'Blog created.');
+    } catch (err) {
+        console.error('handleBlogSubmit:', err);
+        alert('Error saving blog: ' + (err.message || err));
+    }
+}
+
+function editBlog(id) {
+    openBlogModal(id);
+}
+
+async function deleteBlog(id) {
+    if (!confirm('Delete this blog post? This cannot be undone.')) return;
+    try {
+        const { error } = await window.supabaseClient.from('blogs').delete().eq('id', id);
+        if (error) throw error;
+        loadBlogs();
+    } catch (e) {
+        console.error('deleteBlog:', e);
+        alert('Error deleting blog');
+    }
+}
+
+window.editBlog = editBlog;
+window.deleteBlog = deleteBlog;
+window.removeBlogCover = removeBlogCover;
+
 // Make functions globally available for onclick handlers
 window.editProject = editProject;
 window.deleteProject = deleteProject;
@@ -1450,3 +2282,4 @@ window.viewMessage = viewMessage;
 window.markAsRead = markAsRead;
 window.removeProjectImage = removeProjectImage;
 window.removeTeamImage = removeTeamImage;
+window.reCropProjectImage = reCropProjectImage;

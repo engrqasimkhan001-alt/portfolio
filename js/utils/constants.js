@@ -1,10 +1,13 @@
 /** App-wide constants (Supabase + admin). */
 
 /**
- * When true, the portfolio grid is replaced by rows from Supabase `portfolio_projects` (admin panel).
- * When false, the cards in index.html are kept (use this until your database has the full project list).
+ * When true, the homepage portfolio grid loads from Supabase `portfolio_projects` (same data as the admin panel).
+ * When false, only the static cards in index.html are shown — new projects you add in Admin will NOT appear.
  */
-export const LOAD_PORTFOLIO_FROM_SUPABASE = false;
+export const LOAD_PORTFOLIO_FROM_SUPABASE = true;
+
+/** When true, the Blog section loads posts from Supabase `blogs` (status = published). */
+export const LOAD_BLOGS_FROM_SUPABASE = true;
 
 export const SUPABASE_URL = 'https://widshsxgcqmyjobaxkhz.supabase.co';
 export const SUPABASE_ANON_KEY =

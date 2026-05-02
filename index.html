@@ -44,6 +44,7 @@
                 <li><a href="#about" class="nav-link">About</a></li>
                 <li><a href="#skills" class="nav-link">Skills</a></li>
                 <li><a href="#portfolio" class="nav-link">Portfolio</a></li>
+                <li><a href="#blog" class="nav-link">Blog</a></li>
                 <li><a href="#team" class="nav-link">Team</a></li>
                 <li><a href="#services" class="nav-link">Services</a></li>
                 <li><a href="#reviews" class="nav-link">Reviews</a></li>
@@ -404,6 +405,34 @@
         </div>
     </section>
 
+    <!-- Blog Section -->
+    <section id="blog" class="blog-section">
+        <div class="container">
+            <h2 class="section-title">Blog</h2>
+            <p class="section-subtitle">Articles, tutorials, and updates from the workshop</p>
+            <div class="blog-filters">
+                <input type="search" id="blogSearchInput" class="blog-search" placeholder="Search title, excerpt, or content…" aria-label="Search posts">
+                <select id="blogFilterType" aria-label="Filter by type">
+                    <option value="">All types</option>
+                    <option value="Article">Article</option>
+                    <option value="Case Study">Case Study</option>
+                    <option value="Tutorial">Tutorial</option>
+                    <option value="News">News</option>
+                    <option value="Project Update">Project Update</option>
+                    <option value="Tips & Tricks">Tips &amp; Tricks</option>
+                </select>
+                <select id="blogFilterCategory" aria-label="Filter by category">
+                    <option value="">All categories</option>
+                </select>
+                <select id="blogFilterTag" aria-label="Filter by tag">
+                    <option value="">All tags</option>
+                </select>
+            </div>
+            <div id="blogGrid" class="blog-grid" role="list"></div>
+            <p id="blogEmptyState" class="blog-empty is-hidden">No posts match your filters. Try clearing search or filters.</p>
+        </div>
+    </section>
+
     <!-- Project Detail Screen (overlay) -->
     <div id="projectDetailOverlay" class="project-detail-overlay" aria-hidden="true">
         <div class="project-detail-backdrop"></div>
@@ -431,6 +460,30 @@
                     <div id="projectDetailTech" class="project-detail-tech"></div>
                     <a id="projectDetailLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary project-detail-cta" style="display: none;">View Live Project →</a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blog detail overlay -->
+    <div id="blogDetailOverlay" class="blog-detail-overlay" aria-hidden="true">
+        <div class="blog-detail-backdrop"></div>
+        <div class="blog-detail-panel">
+            <header class="blog-detail-header">
+                <a href="#blog" class="blog-detail-back" id="blogDetailBack">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Blog
+                </a>
+                <button type="button" class="blog-detail-close" id="blogDetailClose" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </header>
+            <div class="blog-detail-scroll">
+                <div id="blogDetailCover" class="blog-detail-cover" style="display: none;"></div>
+                <div id="blogDetailFeatured" class="blog-detail-featured-badge">Featured</div>
+                <div id="blogDetailMeta" class="blog-detail-meta"></div>
+                <h1 id="blogDetailTitle" class="blog-detail-title"></h1>
+                <div id="blogDetailTags" class="blog-detail-tags"></div>
+                <div id="blogDetailContent" class="blog-detail-content"></div>
             </div>
         </div>
     </div>

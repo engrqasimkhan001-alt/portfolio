@@ -27,6 +27,24 @@
     margin-bottom: 2rem;
 }
 
+.admin-ui-build-marker {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+    .admin-ui-build-marker {
+        display: none;
+    }
+}
+
 .admin-logo {
     display: inline-block;
     font-size: 2.5rem;
@@ -96,6 +114,22 @@
 .admin-header-left h1 {
     font-size: 1.5rem;
     color: var(--text-primary);
+}
+
+.admin-ui-build-marker {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+    .admin-ui-build-marker {
+        display: none;
+    }
 }
 
 .admin-main {
@@ -561,51 +595,215 @@
     font-weight: 500;
 }
 
-/* Crop Modal Styles */
-.crop-modal-content {
-    max-width: 90%;
-    width: 800px;
+/* ---------- Crop modal (Cropper.js) ---------- */
+.crop-modal .modal-content.crop-modal-content {
+    max-width: min(1100px, calc(100vw - 2.5rem));
+    width: 100%;
+    margin: 1.25rem auto;
+    padding: 0 0.5rem 1rem;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+
+.crop-modal-header {
+    flex-shrink: 0;
+}
+
+.crop-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.crop-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.crop-toolbar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    margin-right: 0.25rem;
+}
+
+.crop-tool-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.crop-tool-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.crop-zoom-range {
+    width: min(180px, 28vw);
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.crop-ratio-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.crop-ratio-btn {
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.crop-ratio-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.crop-ratio-btn.is-active {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-color: transparent;
+    color: #fff;
+}
+
+.crop-reset-btn {
+    margin-left: auto;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.875rem;
+}
+
+.crop-stage {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
 }
 
 .crop-container {
-    padding: 1rem;
+    flex: 1;
+    min-width: 0;
+    min-height: min(72vh, 640px);
+    max-height: min(78vh, 720px);
+    padding: 0.75rem;
     background-color: var(--bg-secondary);
-    border-radius: 8px;
-    margin: 1rem 0;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 400px;
-    max-height: 600px;
     overflow: hidden;
 }
 
-.crop-container img {
+.crop-image-el {
+    display: block;
     max-width: 100%;
     max-height: 100%;
-    display: block;
+}
+
+.crop-preview-panel {
+    flex: 0 0 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.crop-preview-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.crop-preview-thumb {
+    width: 112px;
+    height: 112px;
+    border-radius: 10px;
+    background-color: #fff;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 .crop-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    padding: 1rem 0;
+    gap: 0.75rem;
+    padding: 1rem 0 0;
+    margin-top: 0.75rem;
     border-top: 1px solid var(--border-color);
-    margin-top: 1rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .crop-stage {
+        flex-direction: column;
+    }
+
+    .crop-preview-panel {
+        flex-direction: row;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .crop-container {
+        min-height: 50vh;
+        max-height: 58vh;
+    }
+
+    .crop-reset-btn {
+        margin-left: 0;
+        width: 100%;
+    }
 }
 
 /* Cropper.js overrides */
-.cropper-container {
+.crop-modal .cropper-container {
     direction: ltr;
 }
 
-.cropper-view-box {
+.crop-modal .cropper-view-box {
     outline: 2px solid var(--primary-color);
     outline-offset: -2px;
 }
 
-.cropper-face {
+.crop-modal .cropper-face {
     background-color: transparent;
 }
 
@@ -737,6 +935,18 @@
     max-width: 200px;
 }
 
+/* Project images: upload block (not a nested form-group) */
+.project-upload-block {
+    margin-top: 1rem;
+}
+
+.project-paste-url-label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
 /* Project images list (existing images + drag-and-drop) */
 .form-hint {
     font-size: 0.85rem;
@@ -745,8 +955,8 @@
 }
 
 .project-images-list {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
     gap: 0.75rem;
     min-height: 60px;
     padding: 0.75rem;
@@ -754,6 +964,12 @@
     border: 1px dashed var(--border-color);
     border-radius: 8px;
     margin-bottom: 0.5rem;
+}
+
+@media (min-width: 520px) {
+    .project-images-list {
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    }
 }
 
 .project-images-list.has-items {
@@ -770,8 +986,10 @@
 
 .project-image-item {
     position: relative;
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 104px;
+    margin: 0 auto;
     border-radius: 8px;
     overflow: hidden;
     border: 2px solid var(--border-color);
@@ -826,14 +1044,16 @@
     position: absolute;
     top: 2px;
     right: 2px;
-    width: 22px;
-    height: 22px;
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
     background: rgba(239, 68, 68, 0.9);
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -843,4 +1063,60 @@
 
 .project-image-remove:hover {
     background: #dc2626;
+}
+
+.project-image-edit {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    min-height: 36px;
+    padding: 0.35rem 0.25rem;
+    background: rgba(99, 102, 241, 0.92);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 600;
+    z-index: 2;
+    transition: background 0.2s;
+    line-height: 1.2;
+}
+
+.project-image-edit:hover {
+    background: rgba(79, 70, 229, 0.98);
+}
+
+/* Blog admin */
+.blog-modal-content {
+    max-width: 760px;
+    width: 100%;
+}
+
+.form-row-blog {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 1rem;
+}
+
+@media (min-width: 560px) {
+    .form-row-blog {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.blog-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.blog-cover-preview {
+    margin-top: 0.75rem;
+}
+
+.admin-table-blog {
+    min-width: 880px;
 }

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- wOs-admin-ui-build: 2026-04-04 includes Blogs tab (Reviews → Blogs). Remove or bump after verifying Vercel deploy. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - wOs Portfolio</title>
@@ -41,6 +42,7 @@
                     <div class="admin-header-left">
                         <span class="admin-logo">wOs</span>
                         <h1>Admin Panel</h1>
+                        <span class="admin-ui-build-marker" title="If you do not see this, your browser or CDN is serving an old admin.html">UI 2026.04 · Blogs</span>
                     </div>
                     <button id="logoutBtn" class="btn btn-secondary">Logout</button>
                 </div>
@@ -55,6 +57,7 @@
                     <button class="tab-btn" data-tab="applications">Applications</button>
                     <button class="tab-btn" data-tab="messages">Messages</button>
                     <button class="tab-btn" data-tab="reviews">Reviews</button>
+                    <button class="tab-btn" data-tab="blogs">Blogs</button>
                 </div>
 
                 <!-- Projects Tab -->
@@ -208,6 +211,35 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Blogs Tab -->
+                <div id="blogsTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Blog posts</h2>
+                        <button type="button" class="btn btn-primary" id="addBlogBtn">+ Add Blog</button>
+                    </div>
+                    <p class="form-hint">Create drafts, publish when ready. Cover image is optional. Run <code>database/migrations/migration-blogs.sql</code> in Supabase if the table is missing.</p>
+                    <div class="admin-table-container">
+                        <table class="admin-table admin-table-blog">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Featured</th>
+                                    <th>Published</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blogsTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">Loading blogs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -242,24 +274,19 @@
                     <input type="text" id="projectTechnologies" name="technologies" placeholder="React, Node.js, MongoDB" required>
                 </div>
                 <div class="form-group">
-                    <label>Project images</label>
-                    <p class="form-hint">Drag to reorder. First image is used as the main project image.</p>
+                    <label for="projectImageFile">Project images</label>
+                    <p class="form-hint">Drag thumbnails to reorder (first = main card image). Add files with the picker below — you can select several at once; each opens the crop tool in order. Invalid or over-5MB files are skipped with a warning.</p>
                     <div id="projectImagesList" class="project-images-list" data-empty-text="No images yet. Add one below.">
                         <!-- Filled by JS; items are sortable -->
                     </div>
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <label for="projectImageFile">Upload new image (optional)</label>
+                    <div class="project-upload-block">
                         <div class="file-upload-wrapper">
-                            <input type="file" id="projectImageFile" name="image_file" accept="image/*" class="file-input">
+                            <input type="file" id="projectImageFile" name="image_file" accept="image/*" multiple class="file-input">
                             <div class="file-upload-btn">
                                 <span class="file-upload-icon">📁</span>
-                                <span class="file-upload-text">Choose Image</span>
+                                <span class="file-upload-text">Choose Images</span>
                             </div>
                             <span class="file-name" id="projectFileName">No file chosen</span>
-                        </div>
-                        <div class="image-preview" id="projectImagePreview" style="display: none;">
-                            <img id="projectPreviewImg" src="" alt="Preview">
-                            <button type="button" class="remove-image-btn" onclick="removeProjectImage()">✕</button>
                         </div>
                         <div class="upload-progress" id="projectUploadProgress" style="display: none;">
                             <div class="upload-progress-bar" id="projectProgressBar">
@@ -268,10 +295,8 @@
                             <span class="upload-progress-text" id="projectProgressText">Uploading...</span>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="projectImageUrl">Or paste Image URL (optional)</label>
-                        <input type="url" id="projectImageUrl" name="image_url" placeholder="https://example.com/image.jpg">
-                    </div>
+                    <label for="projectImageUrl" class="project-paste-url-label">Or paste image URL (optional)</label>
+                    <input type="url" id="projectImageUrl" name="image_url" placeholder="https://example.com/image.jpg">
                 </div>
                 <div class="form-group">
                     <label for="projectLink">Project Link (optional)</label>
@@ -432,19 +457,144 @@
         </div>
     </div>
 
-    <!-- Image Crop Modal -->
-    <div id="cropModal" class="modal">
-        <div class="modal-content crop-modal-content">
+    <!-- Blog Modal -->
+    <div id="blogModal" class="modal">
+        <div class="modal-content blog-modal-content">
             <div class="modal-header">
+                <h2 id="blogModalTitle">Add Blog</h2>
+                <button type="button" class="modal-close" id="closeBlogModal">&times;</button>
+            </div>
+            <form id="blogForm" class="modal-form">
+                <input type="hidden" id="blogId" name="id">
+                <div class="form-group">
+                    <label for="blogTitle">Title *</label>
+                    <input type="text" id="blogTitle" name="title" required maxlength="500" placeholder="Post title">
+                </div>
+                <div class="form-group">
+                    <label for="blogSlug">Slug *</label>
+                    <input type="text" id="blogSlug" name="slug" required maxlength="240" placeholder="url-friendly-slug">
+                    <p class="form-hint">Auto-filled from title; edit anytime. Must be unique.</p>
+                </div>
+                <div class="form-group">
+                    <label for="blogExcerpt">Excerpt</label>
+                    <textarea id="blogExcerpt" name="excerpt" rows="2" maxlength="2000" placeholder="Short summary for cards"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="blogContent">Content *</label>
+                    <textarea id="blogContent" name="content" rows="12" required placeholder="Full post body (plain text)"></textarea>
+                </div>
+                <div class="form-row-blog">
+                    <div class="form-group">
+                        <label for="blogCategory">Category</label>
+                        <input type="text" id="blogCategory" name="category" maxlength="120" placeholder="e.g. Engineering">
+                    </div>
+                    <div class="form-group">
+                        <label for="blogType">Blog type *</label>
+                        <select id="blogType" name="type" required>
+                            <option value="Article">Article</option>
+                            <option value="Case Study">Case Study</option>
+                            <option value="Tutorial">Tutorial</option>
+                            <option value="News">News</option>
+                            <option value="Project Update">Project Update</option>
+                            <option value="Tips & Tricks">Tips &amp; Tricks</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="blogTags">Tags (comma-separated)</label>
+                    <input type="text" id="blogTags" name="tags" placeholder="react, supabase, mobile">
+                </div>
+                <div class="form-group">
+                    <label for="blogAuthorName">Author name</label>
+                    <input type="text" id="blogAuthorName" name="author_name" maxlength="200" placeholder="Display name">
+                </div>
+                <div class="form-group">
+                    <label for="blogCoverImageFile">Cover image (optional)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="blogCoverImageFile" name="cover" accept="image/*" class="file-input">
+                        <div class="file-upload-btn">
+                            <span class="file-upload-icon">📁</span>
+                            <span class="file-upload-text">Choose &amp; crop cover</span>
+                        </div>
+                        <span class="file-name" id="blogCoverFileName">No file chosen</span>
+                    </div>
+                    <div class="image-preview blog-cover-preview" id="blogCoverPreview" style="display: none;">
+                        <img id="blogCoverPreviewImg" src="" alt="Cover preview">
+                        <button type="button" class="remove-image-btn" id="removeBlogCoverBtn" title="Remove cover">✕</button>
+                    </div>
+                    <label for="blogCoverPasteUrl" class="project-paste-url-label">Or paste cover image URL</label>
+                    <input type="url" id="blogCoverPasteUrl" placeholder="https://…">
+                </div>
+                <div class="form-row-blog">
+                    <div class="form-group">
+                        <label for="blogStatus">Status *</label>
+                        <select id="blogStatus" name="status" required>
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label" style="margin-top: 1.75rem;">
+                            <input type="checkbox" id="blogFeatured" name="featured">
+                            Featured post
+                        </label>
+                    </div>
+                </div>
+                <div class="form-actions blog-form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBlogBtn">Cancel</button>
+                    <button type="button" class="btn btn-secondary" id="blogSaveDraftBtn">Save as draft</button>
+                    <button type="button" class="btn btn-primary" id="blogPublishBtn">Publish</button>
+                    <button type="submit" class="btn btn-primary" id="blogSaveBtn">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Image Crop Modal -->
+    <div id="cropModal" class="modal crop-modal">
+        <div class="modal-content crop-modal-content">
+            <div class="modal-header crop-modal-header">
                 <h2>Crop Image</h2>
-                <button class="modal-close" id="closeCropModal">&times;</button>
+                <button type="button" class="modal-close" id="closeCropModal" aria-label="Close">&times;</button>
             </div>
-            <div class="crop-container">
-                <img id="cropImage" src="" alt="Crop preview" style="max-width: 100%; max-height: 400px;">
+
+            <div class="crop-toolbar">
+                <div class="crop-toolbar-group">
+                    <span class="crop-toolbar-label">Zoom</span>
+                    <button type="button" class="crop-tool-btn" id="cropZoomOut" title="Zoom out">−</button>
+                    <input type="range" id="cropZoomRange" class="crop-zoom-range" min="100" max="300" value="100" step="1" aria-label="Zoom" />
+                    <button type="button" class="crop-tool-btn" id="cropZoomIn" title="Zoom in">+</button>
+                </div>
+                <div class="crop-toolbar-group">
+                    <span class="crop-toolbar-label">Rotate</span>
+                    <button type="button" class="crop-tool-btn" id="cropRotateLeft" title="Rotate left 90°">↺</button>
+                    <button type="button" class="crop-tool-btn" id="cropRotateRight" title="Rotate right 90°">↻</button>
+                </div>
+                <div class="crop-toolbar-group">
+                    <span class="crop-toolbar-label">Aspect</span>
+                    <div class="crop-ratio-btns" role="group" aria-label="Aspect ratio">
+                        <button type="button" class="crop-ratio-btn is-active" data-aspect="free">Free</button>
+                        <button type="button" class="crop-ratio-btn" data-aspect="1">1:1</button>
+                        <button type="button" class="crop-ratio-btn" data-aspect="1.7778">16:9</button>
+                        <button type="button" class="crop-ratio-btn" data-aspect="1.3333">4:3</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary crop-reset-btn" id="cropResetBtn">Reset</button>
             </div>
+
+            <div class="crop-stage">
+                <div class="crop-container" id="cropContainer">
+                    <img id="cropImage" src="" alt="Image to crop" class="crop-image-el" />
+                </div>
+                <aside class="crop-preview-panel">
+                    <span class="crop-preview-label">Preview</span>
+                    <div id="cropPreviewThumb" class="crop-preview-thumb" aria-hidden="true"></div>
+                </aside>
+            </div>
+
             <div class="crop-actions">
                 <button type="button" class="btn btn-secondary" id="cancelCropBtn">Cancel</button>
-                <button type="button" class="btn btn-primary" id="applyCropBtn">Apply Crop</button>
+                <button type="button" class="btn btn-primary" id="applyCropBtn">Apply crop</button>
             </div>
         </div>
     </div>

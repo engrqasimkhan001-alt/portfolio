@@ -8,6 +8,7 @@ import { initScrollAnimations } from './modules/animations.js';
 import { initPortfolio } from './modules/portfolio.js';
 import { initTeam } from './modules/team.js';
 import { initReviews } from './modules/reviews.js';
+import { initBlog } from './modules/blog.js';
 import { initForms } from './modules/forms.js';
 
 initSplashLoader();
@@ -19,4 +20,5 @@ document.addEventListener('DOMContentLoaded', () => {
     void initPortfolio();
     void initTeam();
     void initReviews();
+    void initBlog();
 });

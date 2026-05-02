@@ -8,6 +8,42 @@ export function getPortfolioProjects() {
     return portfolioProjectsCache;
 }
 
+/** Escape for use inside CSS `url('…')` (matches portfolio card inline style pattern). */
+function cssUrlForBackground(url) {
+    return String(url ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function dedupeUrlsPreserveOrder(urls) {
+    const seen = new Set();
+    const out = [];
+    for (const u of urls) {
+        const s = typeof u === 'string' ? u.trim() : String(u ?? '').trim();
+        if (!s || seen.has(s)) continue;
+        seen.add(s);
+        out.push(s);
+    }
+    return out;
+}
+
+/** Normalize `image_urls` from API (array or JSON string) plus legacy `image_url`. */
+function normalizeProjectImageUrls(project) {
+    let raw = project?.image_urls;
+    if (typeof raw === 'string') {
+        try {
+            raw = JSON.parse(raw);
+        } catch {
+            raw = [];
+        }
+    }
+    let list = [];
+    if (Array.isArray(raw) && raw.length > 0) {
+        list = raw.map(String).filter(Boolean);
+    } else if (project?.image_url) {
+        list = [String(project.image_url)];
+    }
+    return dedupeUrlsPreserveOrder(list);
+}
+
 function getProjectFromCard(card) {
     const index = card.getAttribute('data-index');
     if (index != null && portfolioProjectsCache && portfolioProjectsCache[parseInt(index, 10)] != null) {
@@ -20,10 +56,12 @@ function getProjectFromCard(card) {
         .map((t) => t.trim())
         .filter(Boolean);
     const imageUrlsRaw = card.getAttribute('data-project-image-urls') || '';
-    const image_urls = imageUrlsRaw
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
+    const image_urls = dedupeUrlsPreserveOrder(
+        imageUrlsRaw
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+    );
     const image_url = image_urls[0] || '';
     return {
         title,
@@ -48,15 +86,10 @@ function openProjectDetail(project) {
 
     if (!overlay || !project) return;
 
-    const images =
-        project.image_urls && project.image_urls.length
-            ? project.image_urls
-            : project.image_url
-              ? [project.image_url]
-              : [];
+    const images = normalizeProjectImageUrls(project);
     const mainImage = images[0] || '';
 
-    heroEl.style.backgroundImage = mainImage ? `url('${mainImage}')` : '';
+    heroEl.style.backgroundImage = mainImage ? `url('${cssUrlForBackground(mainImage)}')` : '';
     heroEl.style.backgroundSize = 'cover';
     heroEl.style.backgroundPosition = 'center';
 
@@ -65,12 +98,12 @@ function openProjectDetail(project) {
         images.forEach((url, i) => {
             const thumb = document.createElement('div');
             thumb.className = 'project-detail-thumb' + (i === 0 ? ' is-active' : '');
-            thumb.style.backgroundImage = `url('${url}')`;
+            thumb.style.backgroundImage = `url('${cssUrlForBackground(url)}')`;
             thumb.setAttribute('aria-label', `View image ${i + 1}`);
             thumb.addEventListener('click', () => {
                 thumbsEl.querySelectorAll('.project-detail-thumb').forEach((t) => t.classList.remove('is-active'));
                 thumb.classList.add('is-active');
-                heroEl.style.backgroundImage = `url('${url}')`;
+                heroEl.style.backgroundImage = `url('${cssUrlForBackground(url)}')`;
             });
             thumbsEl.appendChild(thumb);
         });
@@ -103,6 +136,28 @@ function closeProjectDetail() {
     document.body.style.overflow = '';
 }
 
+/** Add +N badge to static HTML cards that list multiple URLs in `data-project-image-urls`. */
+function decorateStaticPortfolioImageBadges(grid) {
+    grid.querySelectorAll('.portfolio-item').forEach((card) => {
+        const raw = card.getAttribute('data-project-image-urls') || '';
+        const urls = dedupeUrlsPreserveOrder(
+            raw
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+        );
+        if (urls.length <= 1) return;
+        const wrap = card.querySelector('.portfolio-image');
+        if (!wrap || wrap.querySelector('.portfolio-image-count')) return;
+        const extra = urls.length - 1;
+        const badge = document.createElement('span');
+        badge.className = 'portfolio-image-count';
+        badge.setAttribute('aria-label', `${extra} more images`);
+        badge.textContent = `+${extra}`;
+        wrap.appendChild(badge);
+    });
+}
+
 export async function initPortfolio() {
     const portfolioGrid = document.getElementById('portfolioGrid') || document.querySelector('.portfolio-grid');
     if (!portfolioGrid) return;
@@ -129,9 +184,12 @@ export async function initPortfolio() {
     }
 
     try {
-        if (!LOAD_PORTFOLIO_FROM_SUPABASE) return;
+        if (!LOAD_PORTFOLIO_FROM_SUPABASE) {
+            decorateStaticPortfolioImageBadges(portfolioGrid);
+            return;
+        }
 
-        const { data, error } = await fetchPublicProjects(12);
+        const { data, error } = await fetchPublicProjects(48);
         if (error) {
             console.error('Error loading portfolio:', error);
             return;
@@ -141,21 +199,42 @@ export async function initPortfolio() {
         portfolioProjectsCache = data;
         if (typeof window !== 'undefined') window.portfolioProjects = data;
 
+        const escapeHtml = (s) =>
+            String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
         portfolioGrid.innerHTML = data
             .map((project, index) => {
-                const technologies = project.technologies.split(',').map((t) => t.trim());
-                const techTags = technologies.map((tech) => `<span class="tech-tag">${tech}</span>`).join('');
-                const mainImage = (project.image_urls && project.image_urls[0]) || project.image_url || '';
+                const technologies = (project.technologies || '')
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter(Boolean);
+                const techTags = technologies.map((tech) => `<span class="tech-tag">${escapeHtml(tech)}</span>`).join('');
+                const imageUrls = normalizeProjectImageUrls(project);
+                const mainImage = imageUrls[0] || '';
+                const mainImageCss = String(mainImage).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const extraImageCount = imageUrls.length > 1 ? imageUrls.length - 1 : 0;
+                const title = escapeHtml(project.title);
+                const desc = escapeHtml(project.description);
+                const platform = escapeHtml(project.platform);
                 return `
                 <div class="portfolio-item fade-in" data-index="${index}">
-                    <div class="portfolio-image" style="${mainImage ? `background-image: url('${mainImage}'); background-size: cover; background-position: center;` : ''}">
+                    <div class="portfolio-image" style="${mainImage ? `background-image: url('${mainImageCss}'); background-size: cover; background-position: center;` : ''}">
                         <div class="portfolio-overlay">
-                            <span class="portfolio-platform">${project.platform}</span>
+                            <span class="portfolio-platform">${platform}</span>
                         </div>
+                        ${
+                            extraImageCount > 0
+                                ? `<span class="portfolio-image-count" aria-label="${extraImageCount} more images">+${extraImageCount}</span>`
+                                : ''
+                        }
                     </div>
                     <div class="portfolio-content">
-                        <h3 class="portfolio-title">${project.title}</h3>
-                        <p class="portfolio-description">${project.description}</p>
+                        <h3 class="portfolio-title">${title}</h3>
+                        <p class="portfolio-description">${desc}</p>
                         <div class="portfolio-tech">
                             ${techTags}
                         </div>
