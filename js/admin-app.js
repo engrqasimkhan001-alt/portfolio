@@ -2,6 +2,7 @@
 import { validateAdminPassword } from './services/authService.js';
 import { PORTFOLIO_SITE_PROJECTS } from './data/portfolioSiteProjects.js';
 import { SITE_CONTENT_FIELDS, fetchSiteContentMap } from './services/siteContentService.js';
+import { requestBlogAiGeneration, getReadableError } from './services/blogAiService.js';
 
 let currentEditingId = null;
 let teamImageFile = null;
@@ -12,6 +13,8 @@ let blogSlugInputFromScript = false;
 let blogTitleSlugDebounceTimer = null;
 let blogPublishedAtExisting = null;
 let blogExistingCoverUrl = null;
+let blogAiGenerating = false;
+let blogAiProgressTimer = null;
 let cropper = null;
 let cropPreviewRaf = null;
 let cropZoomSliderLast = 100;
@@ -734,6 +737,8 @@ function setupEventListeners() {
         ev.preventDefault();
         regenerateBlogSlugFromTitle();
     });
+    document.getElementById('blogAiGenerateBtn')?.addEventListener('click', () => void runBlogAi('generate'));
+    document.getElementById('blogAiImproveBtn')?.addEventListener('click', () => void runBlogAi('improve'));
     
     // Team buttons
     document.getElementById('addTeamBtn').addEventListener('click', () => openTeamModal());
@@ -795,6 +800,7 @@ function handleLogin(e) {
     
     if (validateAdminPassword(password)) {
         sessionStorage.setItem('adminAuthenticated', 'true');
+        sessionStorage.setItem('adminApiPassword', password);
         showDashboard();
         loadData();
         errorDiv.style.display = 'none';
@@ -807,6 +813,7 @@ function handleLogin(e) {
 // Handle logout
 function handleLogout() {
     sessionStorage.removeItem('adminAuthenticated');
+    sessionStorage.removeItem('adminApiPassword');
     showLogin();
     document.getElementById('loginForm').reset();
 }
@@ -2133,9 +2140,175 @@ async function ensureUniqueBlogSlug(rawSlug, excludeId) {
         if (error) throw error;
         if (!data || data.length === 0) return candidate;
         if (data.length === 1 && excludeId != null && String(data[0].id) === String(excludeId)) return candidate;
-        candidate = `${base}-${Date.now().toString(36)}-${n}`.slice(0, 240);
+        candidate = `${base}-${n + 2}`.slice(0, 240);
     }
     throw new Error('Could not resolve a unique slug');
+}
+
+const BLOG_TYPE_VALUES = [
+    'Article',
+    'Case Study',
+    'Tutorial',
+    'News',
+    'Project Update',
+    'Tips & Tricks',
+];
+
+function collectBlogFieldsForAi() {
+    return {
+        title: document.getElementById('blogTitle')?.value.trim() || '',
+        slug: document.getElementById('blogSlug')?.value.trim() || '',
+        excerpt: document.getElementById('blogExcerpt')?.value.trim() || '',
+        content: document.getElementById('blogContent')?.value.trim() || '',
+        category: document.getElementById('blogCategory')?.value.trim() || '',
+        blog_type: document.getElementById('blogType')?.value || '',
+        tags: parseBlogTagsInput(document.getElementById('blogTags')?.value || ''),
+        author_name: document.getElementById('blogAuthorName')?.value.trim() || '',
+    };
+}
+
+function resetBlogAiUi() {
+    const progressWrap = document.getElementById('blogAiProgressWrap');
+    const successMsg = document.getElementById('blogAiSuccessMsg');
+    const errorMsg = document.getElementById('blogAiErrorMsg');
+    const fill = document.getElementById('blogAiProgressFill');
+    if (progressWrap) progressWrap.hidden = true;
+    if (successMsg) successMsg.hidden = true;
+    if (errorMsg) {
+        errorMsg.hidden = true;
+        errorMsg.textContent = '';
+    }
+    if (fill) fill.style.width = '0%';
+    setBlogAiLoading(false);
+}
+
+function setBlogAiLoading(isLoading) {
+    blogAiGenerating = isLoading;
+    const ids = ['blogSaveDraftBtn', 'blogPublishBtn', 'blogSaveBtn', 'blogAiGenerateBtn', 'blogAiImproveBtn'];
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = isLoading;
+    }
+    const raw = document.getElementById('blogAiRawInput');
+    if (raw) raw.disabled = isLoading;
+}
+
+function setBlogAiProgress(pct, label) {
+    const progressWrap = document.getElementById('blogAiProgressWrap');
+    const fill = document.getElementById('blogAiProgressFill');
+    const statusText = document.getElementById('blogAiStatusText');
+    if (progressWrap) progressWrap.hidden = false;
+    if (fill) fill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    if (statusText && label) statusText.textContent = label;
+}
+
+function startBlogAiProgressAnimation() {
+    let pct = 8;
+    setBlogAiProgress(pct, 'Generating blog content…');
+    if (blogAiProgressTimer) clearInterval(blogAiProgressTimer);
+    blogAiProgressTimer = setInterval(() => {
+        if (!blogAiGenerating) return;
+        pct = Math.min(pct + 4 + Math.random() * 6, 92);
+        setBlogAiProgress(pct, 'Generating blog content…');
+    }, 450);
+}
+
+function stopBlogAiProgressAnimation(finalPct) {
+    if (blogAiProgressTimer) {
+        clearInterval(blogAiProgressTimer);
+        blogAiProgressTimer = null;
+    }
+    setBlogAiProgress(finalPct, finalPct >= 100 ? 'Done' : 'Generating blog content…');
+}
+
+async function applyGeneratedBlogToForm(data) {
+    if (!data) return;
+
+    document.getElementById('blogTitle').value = data.title || '';
+    document.getElementById('blogExcerpt').value = data.excerpt || '';
+    document.getElementById('blogContent').value = data.content || '';
+    document.getElementById('blogCategory').value = data.category || '';
+
+    const typeVal = BLOG_TYPE_VALUES.includes(data.blog_type) ? data.blog_type : 'Article';
+    document.getElementById('blogType').value = typeVal;
+
+    const tags = Array.isArray(data.tags) ? data.tags : parseBlogTagsInput(data.tags);
+    document.getElementById('blogTags').value = tags.join(', ');
+
+    document.getElementById('blogStatus').value = 'draft';
+    document.getElementById('blogFeatured').checked = false;
+
+    blogSlugManuallyEdited = true;
+    let slug = slugifyTitle(data.slug || data.title);
+    if (!slug) slug = 'post';
+    try {
+        if (window.supabaseClient) {
+            const blogId = document.getElementById('blogId')?.value || null;
+            slug = await ensureUniqueBlogSlug(slug, blogId || null);
+        }
+    } catch (e) {
+        console.warn('Slug uniqueness check:', e);
+    }
+    setBlogSlugValue(slug);
+}
+
+async function runBlogAi(mode) {
+    if (blogAiGenerating) return;
+
+    const rawText = document.getElementById('blogAiRawInput')?.value.trim() || '';
+    const existing = collectBlogFieldsForAi();
+
+    if (rawText.length < 20 && (existing.content || '').length < 40) {
+        const err = document.getElementById('blogAiErrorMsg');
+        if (err) {
+            err.textContent =
+                'Add at least a short paragraph in the notes box, or more content in the post fields to improve.';
+            err.hidden = false;
+        }
+        return;
+    }
+
+    const successMsg = document.getElementById('blogAiSuccessMsg');
+    const errorMsg = document.getElementById('blogAiErrorMsg');
+    if (successMsg) successMsg.hidden = true;
+    if (errorMsg) {
+        errorMsg.hidden = true;
+        errorMsg.textContent = '';
+    }
+
+    setBlogAiLoading(true);
+    startBlogAiProgressAnimation();
+
+    try {
+        const data = await requestBlogAiGeneration({
+            rawText,
+            mode,
+            existing,
+        });
+        stopBlogAiProgressAnimation(100);
+        await applyGeneratedBlogToForm(data);
+        if (successMsg) {
+            successMsg.textContent =
+                'Blog fields filled as draft. Review and edit, then Save as draft or Publish when ready.';
+            successMsg.hidden = false;
+        }
+    } catch (e) {
+        const h = window.location.hostname;
+        if (h === 'localhost' || h === '127.0.0.1') {
+            console.error('[blog-ai] readable error:', getReadableError(e), e);
+        } else {
+            console.error('runBlogAi:', getReadableError(e), e);
+        }
+        stopBlogAiProgressAnimation(0);
+        const progressWrap = document.getElementById('blogAiProgressWrap');
+        if (progressWrap) progressWrap.hidden = true;
+        if (errorMsg) {
+            errorMsg.textContent = getReadableError(e);
+            errorMsg.hidden = false;
+        }
+    } finally {
+        setBlogAiLoading(false);
+    }
 }
 
 async function loadBlogs() {
@@ -2207,6 +2380,9 @@ async function openBlogModal(blogId = null) {
         document.getElementById('blogFeatured').checked = false;
         flushBlogSlugSyncFromTitle();
     }
+    resetBlogAiUi();
+    const rawAi = document.getElementById('blogAiRawInput');
+    if (rawAi) rawAi.value = '';
     modal.classList.add('active');
     setTimeout(() => setupFileUploadListeners(), 100);
 }
@@ -2224,6 +2400,11 @@ function closeBlogModal() {
     blogSlugManuallyEdited = false;
     blogPublishedAtExisting = null;
     blogExistingCoverUrl = null;
+    resetBlogAiUi();
+    if (blogAiProgressTimer) {
+        clearInterval(blogAiProgressTimer);
+        blogAiProgressTimer = null;
+    }
 }
 
 async function loadBlogData(id) {
@@ -2271,6 +2452,10 @@ async function loadBlogData(id) {
 }
 
 async function handleBlogSubmit(e, forcedStatus) {
+    if (blogAiGenerating) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        return;
+    }
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
     const id = document.getElementById('blogId').value;

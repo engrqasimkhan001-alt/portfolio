@@ -482,6 +482,28 @@
             <form id="blogForm" class="modal-form blog-modal-form">
                 <input type="hidden" id="blogId" name="id">
                 <div class="blog-modal-body-scroll">
+                <div class="blog-ai-panel" id="blogAiPanel">
+                    <div class="blog-ai-panel-header">
+                        <h3 class="blog-ai-panel-title">AI assistant</h3>
+                        <p class="form-hint blog-ai-panel-hint">Paste rough notes or a draft. AI fills the fields below as a <strong>draft</strong> for you to review—nothing is published automatically.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="blogAiRawInput">Notes / rough draft</label>
+                        <textarea id="blogAiRawInput" rows="5" maxlength="12000" placeholder="Paste paragraphs, bullet points, or a messy draft. AI will structure and polish it for your portfolio blog."></textarea>
+                    </div>
+                    <div class="blog-ai-actions">
+                        <button type="button" class="btn btn-primary blog-ai-btn" id="blogAiGenerateBtn">Generate with AI</button>
+                        <button type="button" class="btn btn-secondary blog-ai-btn" id="blogAiImproveBtn">Improve blog</button>
+                    </div>
+                    <div class="blog-ai-progress-wrap" id="blogAiProgressWrap" hidden>
+                        <div class="upload-progress-bar blog-ai-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                            <div class="upload-progress-fill blog-ai-progress-fill" id="blogAiProgressFill"></div>
+                        </div>
+                        <p class="blog-ai-status" id="blogAiStatusText">Generating blog content…</p>
+                    </div>
+                    <p class="blog-ai-feedback blog-ai-feedback--success" id="blogAiSuccessMsg" hidden></p>
+                    <p class="blog-ai-feedback blog-ai-feedback--error" id="blogAiErrorMsg" hidden></p>
+                </div>
                 <div class="form-group">
                     <label for="blogTitle">Title *</label>
                     <input type="text" id="blogTitle" name="title" required maxlength="500" placeholder="Enter blog title">

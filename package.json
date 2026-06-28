@@ -4,6 +4,7 @@
   "description": "Professional portfolio website for Engr Qasim Khan",
   "scripts": {
     "dev": "five-server . --port=8000 --open=/ --wait=150 --ignore=node_modules --ignore=.git",
+    "dev:vercel": "vercel dev --listen 8000",
     "dev:static": "npx http-server -p 8000 -o",
     "start": "npm run dev"
   },
@@ -14,6 +15,10 @@
   "author": "Engr Qasim Khan",
   "license": "MIT",
   "devDependencies": {
-    "five-server": "^0.4.5"
+    "five-server": "^0.4.5",
+    "vercel": "^54.1.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
   }
 }
