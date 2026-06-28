@@ -29,3 +29,5 @@ npm-debug.log*
 # Build outputs (if you add a build step later)
 dist/
 build/
+.vercel
+.env*.local
