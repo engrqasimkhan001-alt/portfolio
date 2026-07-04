@@ -25,6 +25,10 @@ function sendSuccess(res, blog) {
             category: blog.category || '',
             blog_type: blog.blog_type || 'Article',
             tags: Array.isArray(blog.tags) ? blog.tags : [],
+            seo_title: blog.seo_title || '',
+            meta_description: blog.meta_description || '',
+            keywords: blog.keywords || '',
+            hashtags: blog.hashtags || '',
             status: 'draft',
         },
     });

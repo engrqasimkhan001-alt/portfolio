@@ -2,7 +2,7 @@
 import { validateAdminPassword } from './services/authService.js';
 import { PORTFOLIO_SITE_PROJECTS } from './data/portfolioSiteProjects.js';
 import { SITE_CONTENT_FIELDS, fetchSiteContentMap } from './services/siteContentService.js';
-import { requestBlogAiGeneration, getReadableError } from './services/blogAiService.js';
+import { requestBlogAiGeneration, generateLocalFallbackBlog, getReadableError } from './services/blogAiService.js';
 
 let currentEditingId = null;
 let teamImageFile = null;
@@ -2238,6 +2238,19 @@ async function applyGeneratedBlogToForm(data) {
     document.getElementById('blogStatus').value = 'draft';
     document.getElementById('blogFeatured').checked = false;
 
+    // Populate optional SEO fields if fields exist in DOM
+    const seoTitleEl = document.getElementById('blogSeoTitle') || document.querySelector('[name="seo_title"]') || document.querySelector('[name="seoTitle"]');
+    if (seoTitleEl) seoTitleEl.value = data.seo_title || '';
+
+    const metaDescEl = document.getElementById('blogMetaDescription') || document.querySelector('[name="meta_description"]') || document.querySelector('[name="metaDescription"]');
+    if (metaDescEl) metaDescEl.value = data.meta_description || '';
+
+    const keywordsEl = document.getElementById('blogKeywords') || document.querySelector('[name="keywords"]') || document.querySelector('[name="blog_keywords"]');
+    if (keywordsEl) keywordsEl.value = data.keywords || '';
+
+    const hashtagsEl = document.getElementById('blogHashtags') || document.querySelector('[name="hashtags"]') || document.querySelector('[name="blog_hashtags"]');
+    if (hashtagsEl) hashtagsEl.value = data.hashtags || '';
+
     blogSlugManuallyEdited = true;
     let slug = slugifyTitle(data.slug || data.title);
     if (!slug) slug = 'post';
@@ -2279,6 +2292,8 @@ async function runBlogAi(mode) {
     setBlogAiLoading(true);
     startBlogAiProgressAnimation();
 
+    let apiError = null;
+
     try {
         const data = await requestBlogAiGeneration({
             rawText,
@@ -2293,18 +2308,34 @@ async function runBlogAi(mode) {
             successMsg.hidden = false;
         }
     } catch (e) {
+        apiError = e;
         const h = window.location.hostname;
         if (h === 'localhost' || h === '127.0.0.1') {
-            console.error('[blog-ai] readable error:', getReadableError(e), e);
+            console.warn('[blog-ai] AI Generation failed, trying local fallback. API Error:', getReadableError(e), e);
         } else {
-            console.error('runBlogAi:', getReadableError(e), e);
+            console.warn('runBlogAi: AI Generation failed, trying local fallback:', getReadableError(e));
         }
-        stopBlogAiProgressAnimation(0);
-        const progressWrap = document.getElementById('blogAiProgressWrap');
-        if (progressWrap) progressWrap.hidden = true;
-        if (errorMsg) {
-            errorMsg.textContent = getReadableError(e);
-            errorMsg.hidden = false;
+
+        try {
+            // Simulated delay for premium UX feel
+            await new Promise(resolve => setTimeout(resolve, 800));
+            const fallbackData = generateLocalFallbackBlog({ rawText, mode, existing });
+            stopBlogAiProgressAnimation(100);
+            await applyGeneratedBlogToForm(fallbackData);
+            if (successMsg) {
+                successMsg.textContent =
+                    'Blog fields filled as draft (local fallback). Review and edit, then Save as draft or Publish when ready.';
+                successMsg.hidden = false;
+            }
+        } catch (fallbackError) {
+            console.error('Fallback generation also failed:', fallbackError);
+            stopBlogAiProgressAnimation(0);
+            const progressWrap = document.getElementById('blogAiProgressWrap');
+            if (progressWrap) progressWrap.hidden = true;
+            if (errorMsg) {
+                errorMsg.textContent = `AI Generation failed: ${getReadableError(apiError)}. Fallback also failed: ${getReadableError(fallbackError)}`;
+                errorMsg.hidden = false;
+            }
         }
     } finally {
         setBlogAiLoading(false);
@@ -2431,6 +2462,19 @@ async function loadBlogData(id) {
         document.getElementById('blogStatus').value = data.status === 'published' ? 'published' : 'draft';
         document.getElementById('blogFeatured').checked = !!data.featured;
         document.getElementById('blogCoverPasteUrl').value = '';
+
+        // Populate optional SEO fields if fields exist in DOM
+        const seoTitleEl = document.getElementById('blogSeoTitle') || document.querySelector('[name="seo_title"]') || document.querySelector('[name="seoTitle"]');
+        if (seoTitleEl) seoTitleEl.value = data.seo_title || '';
+
+        const metaDescEl = document.getElementById('blogMetaDescription') || document.querySelector('[name="meta_description"]') || document.querySelector('[name="metaDescription"]');
+        if (metaDescEl) metaDescEl.value = data.meta_description || '';
+
+        const keywordsEl = document.getElementById('blogKeywords') || document.querySelector('[name="keywords"]') || document.querySelector('[name="blog_keywords"]');
+        if (keywordsEl) keywordsEl.value = data.keywords || '';
+
+        const hashtagsEl = document.getElementById('blogHashtags') || document.querySelector('[name="hashtags"]') || document.querySelector('[name="blog_hashtags"]');
+        if (hashtagsEl) hashtagsEl.value = data.hashtags || '';
 
         blogPublishedAtExisting = data.published_at || null;
         revokeBlogCoverState();
