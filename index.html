@@ -607,56 +607,88 @@
         <div class="container">
             <h2 class="section-title" data-site="section_reviews_title">Client Reviews</h2>
             <p class="section-subtitle" data-site="section_reviews_subtitle">What clients say about working with me</p>
-            <div class="reviews-grid" id="reviewsGrid">
-                <div class="review-card fade-in">
-                    <div class="review-stars" aria-label="5 out of 5 stars">
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
+            
+            <div class="upwork-highlight-row">
+                <!-- Upwork Achievement Summary Card -->
+                <div class="upwork-summary-card">
+                    <div class="upwork-summary-header">
+                        <span class="upwork-summary-icon">🏆</span>
+                        <h3 class="upwork-summary-title">Upwork Profile</h3>
                     </div>
-                    <blockquote class="review-text">
-                        Qasim delivered an excellent e-commerce app on time. Professional communication and high-quality code. Would hire again.
-                    </blockquote>
-                    <div class="review-author">
-                        <span class="review-name">Sarah M.</span>
-                        <span class="review-role">Startup Founder, USA</span>
-                    </div>
+                    <ul class="upwork-summary-list">
+                        <li><span class="check-icon">✔</span> <strong>4,200+</strong> Upwork hours</li>
+                        <li><span class="check-icon">✔</span> <strong>$15,000+</strong> earned</li>
+                        <li><span class="check-icon">✔</span> Long-term client relationships</li>
+                        <li><span class="check-icon">✔</span> Verified Upwork feedback</li>
+                        <li><span class="check-icon">✔</span> Flutter, Firebase, Dart, API Integration, WebSockets experience</li>
+                    </ul>
+                    <a href="https://www.upwork.com/freelancers/~yourprofile" target="_blank" rel="noopener noreferrer" class="btn btn-primary upwork-summary-btn" data-site="hero_upwork_url">View My Upwork Profile</a>
                 </div>
-                <div class="review-card fade-in">
-                    <div class="review-stars" aria-label="5 out of 5 stars">
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
+
+                <!-- Upwork Reviews Column -->
+                <div class="upwork-reviews-list">
+                    <!-- Review 1 -->
+                    <div class="review-card upwork-review-card fade-in">
+                        <div class="upwork-review-header">
+                            <div class="review-stars" aria-label="5 out of 5 stars">
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <strong class="rating-number">5.0</strong>
+                            </div>
+                            <span class="upwork-badge">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                Upwork Verified
+                            </span>
+                        </div>
+                        <blockquote class="review-text">
+                            "One of the hardest working employees I had the pleasure of working with."
+                        </blockquote>
+                        <div class="upwork-review-meta">
+                            <div><strong>Project:</strong> Flutter Developer Needed for MVP Deployment and Debugging</div>
+                            <div><strong>Status:</strong> In progress</div>
+                            <div><strong>Date:</strong> May 7, 2026</div>
+                            <div><strong>Work History:</strong> 2,480+ hours · $9,760+</div>
+                        </div>
                     </div>
-                    <blockquote class="review-text">
-                        Great experience from start to finish. The mobile app he built for us exceeded expectations. Highly recommend for Flutter projects.
-                    </blockquote>
-                    <div class="review-author">
-                        <span class="review-name">James K.</span>
-                        <span class="review-role">Product Manager, UK</span>
-                    </div>
-                </div>
-                <div class="review-card fade-in">
-                    <div class="review-stars" aria-label="5 out of 5 stars">
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                        <span class="star filled" aria-hidden="true">★</span>
-                    </div>
-                    <blockquote class="review-text">
-                        Responsive, skilled, and easy to work with. Delivered our dashboard ahead of schedule. Will definitely work together again.
-                    </blockquote>
-                    <div class="review-author">
-                        <span class="review-name">Alex T.</span>
-                        <span class="review-role">CTO, Canada</span>
+
+                    <!-- Review 2 -->
+                    <div class="review-card upwork-review-card fade-in">
+                        <div class="upwork-review-header">
+                            <div class="review-stars" aria-label="4.7 out of 5 stars">
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star">★</span>
+                                <strong class="rating-number">4.7</strong>
+                            </div>
+                            <span class="upwork-badge">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                Upwork Verified
+                            </span>
+                        </div>
+                        <blockquote class="review-text">
+                            "Muhammad Qasim is a hard worker who tries to get requests done in a professional manner. He is a skilled programmer."
+                        </blockquote>
+                        <div class="upwork-review-meta">
+                            <div><strong>Project:</strong> Flutter Developer Needed for MVP Deployment and Debugging</div>
+                            <div><strong>Status:</strong> Completed</div>
+                            <div><strong>Date:</strong> Oct 14, 2024 - Jul 21, 2025</div>
+                            <div><strong>Work History:</strong> 1,733+ hours · $6,194+</div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Dynamic Additional Reviews -->
+            <div id="additionalReviewsContainer" class="additional-reviews-container" style="display: none;">
+                <h3 class="additional-reviews-title">More Client Feedback</h3>
+                <div class="reviews-grid" id="reviewsGrid"></div>
+            </div>
+
             <div class="reviews-summary">
                 <div class="reviews-summary-stars">
                     <span class="star filled">★</span>

@@ -765,3 +765,229 @@
     }
 }
 
+/* ========== Upwork Reviews & Testimonials Styling ========== */
+.upwork-highlight-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3.5rem;
+    align-items: stretch;
+}
+
+.upwork-summary-card {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.upwork-summary-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.upwork-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.upwork-summary-icon {
+    font-size: 1.75rem;
+}
+
+.upwork-summary-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.upwork-summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.upwork-summary-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.upwork-summary-list .check-icon {
+    color: #14a800;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.upwork-summary-btn {
+    text-align: center;
+    text-decoration: none;
+    width: 100%;
+}
+
+.upwork-reviews-list {
+    flex: 2;
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.upwork-review-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 1.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+    position: relative;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.upwork-review-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.upwork-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.upwork-review-card .review-stars {
+    color: #ffc107;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 1.1rem;
+}
+
+.upwork-review-card .rating-number {
+    font-size: 0.9rem;
+    margin-left: 0.45rem;
+    color: var(--text-secondary);
+}
+
+.upwork-badge {
+    background: #14a800;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.upwork-badge svg {
+    flex-shrink: 0;
+}
+
+.upwork-review-card .review-text {
+    font-size: 0.95rem;
+    font-style: italic;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0 0 1.25rem;
+    border: none;
+    padding: 0;
+}
+
+.upwork-review-meta {
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.85rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.additional-reviews-container {
+    margin-top: 4rem;
+}
+
+.additional-reviews-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-primary);
+    margin-bottom: 1.75rem;
+}
+
+@media (max-width: 992px) {
+    .upwork-highlight-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* ========== Project Case Study Styling ========== */
+.portfolio-item:hover .btn-case-study svg {
+    transform: translateX(4px);
+}
+
+.project-case-study-section {
+    width: 100%;
+}
+
+.case-study-field {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.case-study-field:hover {
+    border-color: rgba(99, 102, 241, 0.2);
+    transform: translateY(-2px);
+}
+
+.project-detail-actions {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+}
+
+.project-detail-actions .btn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+}
+
+@media (max-width: 576px) {
+    .project-detail-actions {
+        flex-direction: column;
+    }
+    
+    .project-detail-actions .btn {
+        width: 100%;
+    }
+}
+
