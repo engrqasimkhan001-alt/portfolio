@@ -72,6 +72,12 @@ function getProjectFromCard(card) {
         image_url,
         image_urls,
         project_link: card.getAttribute('data-project-link') || '',
+        client_need: card.getAttribute('data-project-client-need') || '',
+        my_role: card.getAttribute('data-project-my-role') || '',
+        key_features: card.getAttribute('data-project-key-features') || '',
+        challenges_solved: card.getAttribute('data-project-challenges-solved') || '',
+        results_impact: card.getAttribute('data-project-results-impact') || '',
+        github_link: card.getAttribute('data-project-github-link') || '',
     };
 }
 
@@ -122,6 +128,58 @@ function openProjectDetail(project) {
         linkEl.style.display = '';
     } else {
         linkEl.style.display = 'none';
+    }
+
+    // Populate Case Study sections if fields exist
+    const studySection = document.getElementById('projectCaseStudySection');
+    const detailProblem = document.getElementById('projectDetailProblem');
+    const detailRole = document.getElementById('projectDetailRole');
+    const detailFeatures = document.getElementById('projectDetailFeatures');
+    const detailChallenges = document.getElementById('projectDetailChallenges');
+    const detailResults = document.getElementById('projectDetailResults');
+    const githubLinkEl = document.getElementById('projectDetailGithub');
+
+    const hasCaseStudy = project.client_need || project.my_role || project.key_features || project.challenges_solved || project.results_impact;
+
+    if (hasCaseStudy && studySection) {
+        studySection.style.display = 'block';
+        
+        if (detailProblem) {
+            detailProblem.textContent = project.client_need || '';
+            const group = document.getElementById('caseStudyProblemGroup');
+            if (group) group.style.display = project.client_need ? 'block' : 'none';
+        }
+        if (detailRole) {
+            detailRole.textContent = project.my_role || '';
+            const group = document.getElementById('caseStudyRoleGroup');
+            if (group) group.style.display = project.my_role ? 'block' : 'none';
+        }
+        if (detailFeatures) {
+            detailFeatures.textContent = project.key_features || '';
+            const group = document.getElementById('caseStudyFeaturesGroup');
+            if (group) group.style.display = project.key_features ? 'block' : 'none';
+        }
+        if (detailChallenges) {
+            detailChallenges.textContent = project.challenges_solved || '';
+            const group = document.getElementById('caseStudyChallengesGroup');
+            if (group) group.style.display = project.challenges_solved ? 'block' : 'none';
+        }
+        if (detailResults) {
+            detailResults.textContent = project.results_impact || '';
+            const group = document.getElementById('caseStudyResultsGroup');
+            if (group) group.style.display = project.results_impact ? 'block' : 'none';
+        }
+    } else if (studySection) {
+        studySection.style.display = 'none';
+    }
+
+    if (githubLinkEl) {
+        if (project.github_link) {
+            githubLinkEl.href = project.github_link;
+            githubLinkEl.style.display = '';
+        } else {
+            githubLinkEl.style.display = 'none';
+        }
     }
 
     overlay.classList.add('is-open');
@@ -240,11 +298,21 @@ export async function initPortfolio() {
                                 : ''
                         }
                     </div>
-                    <div class="portfolio-content">
-                        <h3 class="portfolio-title">${title}</h3>
-                        <p class="portfolio-description">${desc}</p>
-                        <div class="portfolio-tech">
-                            ${techTags}
+                    <div class="portfolio-content" style="display: flex; flex-direction: column; min-height: 160px; justify-content: space-between;">
+                        <div>
+                            <h3 class="portfolio-title">${title}</h3>
+                            <p class="portfolio-description">${desc}</p>
+                        </div>
+                        <div>
+                            <div class="portfolio-tech" style="margin-bottom: 0.75rem;">
+                                ${techTags}
+                            </div>
+                            <div class="portfolio-action-row" style="border-top: 1px solid var(--border-color); padding-top: 0.6rem; margin-top: 0.4rem;">
+                                <span class="btn-case-study" style="font-size: 0.8125rem; font-weight: 600; color: var(--primary-color); display: inline-flex; align-items: center; gap: 0.25rem;">
+                                    View Case Study
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform 0.2s;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

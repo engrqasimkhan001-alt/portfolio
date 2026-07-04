@@ -720,3 +720,48 @@
     grid-column: 1 / -1;
 }
 
+/* ========== Project Case Study Styling ========== */
+.portfolio-item:hover .btn-case-study svg {
+    transform: translateX(4px);
+}
+
+.project-case-study-section {
+    width: 100%;
+}
+
+.case-study-field {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.case-study-field:hover {
+    border-color: rgba(99, 102, 241, 0.2);
+    transform: translateY(-2px);
+}
+
+.project-detail-actions {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+}
+
+.project-detail-actions .btn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+}
+
+@media (max-width: 576px) {
+    .project-detail-actions {
+        flex-direction: column;
+    }
+    
+    .project-detail-actions .btn {
+        width: 100%;
+    }
+}
+

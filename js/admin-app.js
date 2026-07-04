@@ -1184,6 +1184,12 @@ async function loadProjectData(id) {
         document.getElementById('projectTechnologies').value = data.technologies;
         document.getElementById('projectImageUrl').value = '';
         document.getElementById('projectLink').value = data.project_link || '';
+        document.getElementById('projectClientNeed').value = data.client_need || '';
+        document.getElementById('projectMyRole').value = data.my_role || '';
+        document.getElementById('projectKeyFeatures').value = data.key_features || '';
+        document.getElementById('projectChallengesSolved').value = data.challenges_solved || '';
+        document.getElementById('projectResultsImpact').value = data.results_impact || '';
+        document.getElementById('projectGithubLink').value = data.github_link || '';
 
         const urls = normalizeImageUrlsFromProjectRow(data);
         projectImageItems = urls.map((url) => {
@@ -1291,6 +1297,12 @@ async function handleProjectSubmit(e) {
             image_url: finalUrls.length ? finalUrls[0] : null,
             image_urls: finalUrls,
             project_link: document.getElementById('projectLink').value.trim() || null,
+            client_need: document.getElementById('projectClientNeed').value.trim() || null,
+            my_role: document.getElementById('projectMyRole').value.trim() || null,
+            key_features: document.getElementById('projectKeyFeatures').value.trim() || null,
+            challenges_solved: document.getElementById('projectChallengesSolved').value.trim() || null,
+            results_impact: document.getElementById('projectResultsImpact').value.trim() || null,
+            github_link: document.getElementById('projectGithubLink').value.trim() || null,
         };
         
         submitBtn.textContent = 'Saving...';
