@@ -93,6 +93,10 @@ function openProjectDetail(project) {
 
     if (!overlay || !project) return;
 
+    if (typeof window.trackProjectView === 'function') {
+        window.trackProjectView(project.title);
+    }
+
     const images = normalizeProjectImageUrls(project);
     const mainImage = images[0] || '';
 

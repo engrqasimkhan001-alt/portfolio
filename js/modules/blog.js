@@ -145,6 +145,10 @@ function openBlogDetail(post) {
     const contentEl = document.getElementById('blogDetailContent');
     if (!overlay || !titleEl || !contentEl) return;
 
+    if (typeof window.trackBlogView === 'function') {
+        window.trackBlogView(post.title || post.slug);
+    }
+
     const cover = post.cover_image_url ? cssUrlForBackground(post.cover_image_url) : '';
     if (coverEl) {
         if (cover) {

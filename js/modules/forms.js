@@ -59,6 +59,10 @@ export function initForms() {
                 const { error } = await insertContactMessage(formData);
                 if (error) throw error;
 
+                if (typeof window.trackContactSubmit === 'function') {
+                    window.trackContactSubmit();
+                }
+
                 showFormMessage(contactForm, "Message sent successfully! I'll get back to you soon.", 'success');
                 contactForm.reset();
                 submitButton.textContent = 'Message Sent!';

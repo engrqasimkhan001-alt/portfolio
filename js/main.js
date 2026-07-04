@@ -13,6 +13,7 @@ import { initForms } from './modules/forms.js';
 import { initCursorHover } from './modules/cursorHover.js';
 import { initScrollAmbience } from './modules/scrollAmbience.js';
 import { initSiteContent } from './modules/siteContent.js';
+import { initTracking } from './modules/tracking.js';
 
 initSplashLoader();
 
@@ -27,4 +28,5 @@ document.addEventListener('DOMContentLoaded', () => {
     void initReviews();
     void initBlog();
     void initSiteContent();
+    void initTracking();
 });

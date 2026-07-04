@@ -59,6 +59,7 @@
                     <button class="tab-btn" data-tab="reviews">Reviews</button>
                     <button class="tab-btn" data-tab="blogs">Blogs</button>
                     <button class="tab-btn" data-tab="website">Website</button>
+                    <button class="tab-btn" data-tab="analytics">Analytics</button>
                 </div>
 
                 <!-- Projects Tab -->
@@ -254,6 +255,154 @@
                         database to keep the last saved value; reload the public site after saving.
                     </p>
                     <div id="websiteFormFields" class="website-form-fields"></div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analyticsTab" class="tab-content">
+                    <div class="admin-section-header">
+                        <h2>Website Analytics & Visitor History</h2>
+                        <div class="admin-section-actions">
+                            <button type="button" class="btn btn-secondary" id="refreshAnalyticsBtn">Refresh Data</button>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Stats Summary Grid -->
+                    <div class="analytics-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Total Visitors</span>
+                            <h3 id="statTotalVisitors" style="font-size: 2rem; font-weight: 700; margin: 0.5rem 0 0; color: var(--text-primary);">0</h3>
+                        </div>
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Returning Visitors</span>
+                            <h3 id="statReturningVisitors" style="font-size: 2rem; font-weight: 700; margin: 0.5rem 0 0; color: var(--text-primary);">0</h3>
+                        </div>
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Total Page Views</span>
+                            <h3 id="statTotalPageViews" style="font-size: 2rem; font-weight: 700; margin: 0.5rem 0 0; color: var(--text-primary);">0</h3>
+                        </div>
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Avg Session Duration</span>
+                            <h3 id="statAvgDuration" style="font-size: 2rem; font-weight: 700; margin: 0.5rem 0 0; color: var(--text-primary);">0s</h3>
+                        </div>
+                    </div>
+
+                    <div class="analytics-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 12px;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Blog Views</span>
+                            <h4 id="statBlogViews" style="font-size: 1.5rem; font-weight: 700; margin: 0.4rem 0 0; color: var(--text-primary);">0</h4>
+                        </div>
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 12px;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Project Views</span>
+                            <h4 id="statProjectViews" style="font-size: 1.5rem; font-weight: 700; margin: 0.4rem 0 0; color: var(--text-primary);">0</h4>
+                        </div>
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 12px;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Contact Submissions</span>
+                            <h4 id="statContactSubmissions" style="font-size: 1.5rem; font-weight: 700; margin: 0.4rem 0 0; color: var(--text-primary);">0</h4>
+                        </div>
+                        <div class="analytics-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 12px;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Resume Downloads</span>
+                            <h4 id="statResumeDownloads" style="font-size: 1.5rem; font-weight: 700; margin: 0.4rem 0 0; color: var(--text-primary);">0</h4>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="analytics-charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+                        <div class="chart-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 16px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem; color: var(--text-primary);">Visitors Over Time</h3>
+                            <div style="position: relative; height: 260px; width: 100%;"><canvas id="chartVisitorsTime"></canvas></div>
+                        </div>
+                        <div class="chart-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 16px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem; color: var(--text-primary);">Device Distribution</h3>
+                            <div style="position: relative; height: 260px; width: 100%;"><canvas id="chartDevices"></canvas></div>
+                        </div>
+                        <div class="chart-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 16px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem; color: var(--text-primary);">Browser Distribution</h3>
+                            <div style="position: relative; height: 260px; width: 100%;"><canvas id="chartBrowsers"></canvas></div>
+                        </div>
+                        <div class="chart-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 16px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 1rem; color: var(--text-primary);">Country Distribution</h3>
+                            <div style="position: relative; height: 260px; width: 100%;"><canvas id="chartCountries"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- Top Parameters Tables Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3.5rem;">
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px;">
+                            <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Top Referrers</h3>
+                            <ul id="listTopReferrers" style="list-style: none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.5rem; font-size:0.875rem; color:var(--text-secondary);">
+                                <li>Loading...</li>
+                            </ul>
+                        </div>
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px;">
+                            <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Most Viewed Blogs</h3>
+                            <ul id="listTopBlogs" style="list-style: none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.5rem; font-size:0.875rem; color:var(--text-secondary);">
+                                <li>Loading...</li>
+                            </ul>
+                        </div>
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px;">
+                            <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Most Viewed Projects</h3>
+                            <ul id="listTopProjects" style="list-style: none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.5rem; font-size:0.875rem; color:var(--text-secondary);">
+                                <li>Loading...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Visitor History Table Section -->
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem;">
+                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--text-primary);">Visitor Session History</h3>
+                        
+                        <!-- Search & Filter Controls -->
+                        <div class="analytics-filters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="analyticsSearch" placeholder="Search country, OS, browser..." style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.875rem; flex: 1; min-width: 200px; background: var(--bg-primary); color: var(--text-primary);">
+                            
+                            <select id="analyticsFilterDate" style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.875rem; background: var(--bg-primary); color: var(--text-primary); min-width: 140px;">
+                                <option value="all">All Dates</option>
+                                <option value="today">Today</option>
+                                <option value="7days">Last 7 Days</option>
+                                <option value="30days">Last 30 Days</option>
+                            </select>
+
+                            <select id="analyticsFilterCountry" style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.875rem; background: var(--bg-primary); color: var(--text-primary); min-width: 140px;">
+                                <option value="all">All Countries</option>
+                            </select>
+
+                            <select id="analyticsFilterPage" style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.875rem; background: var(--bg-primary); color: var(--text-primary); min-width: 140px;">
+                                <option value="all">All Pages</option>
+                            </select>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="admin-table-container">
+                            <table class="admin-table" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr>
+                                        <th>Visitor Token</th>
+                                        <th>Location</th>
+                                        <th>Device / Browser / OS</th>
+                                        <th>Session Duration</th>
+                                        <th>Page Views</th>
+                                        <th>Landing / Current Page</th>
+                                        <th>Conversions</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analyticsTableBody">
+                                    <tr>
+                                        <td colspan="8" class="loading">Loading visitor history...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <span id="analyticsPaginationInfo" style="font-size: 0.85rem; color: var(--text-secondary);">Showing 0-0 of 0 logs</span>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-secondary btn-small" id="analyticsBtnPrev" disabled>Previous</button>
+                                <button type="button" class="btn btn-secondary btn-small" id="analyticsBtnNext" disabled>Next</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -671,6 +820,7 @@
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module" src="js/admin.js"></script>
 </body>
 </html>

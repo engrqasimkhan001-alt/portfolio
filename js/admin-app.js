@@ -922,6 +922,8 @@ function switchTab(tabName) {
         loadBlogs();
     } else if (tabName === 'website') {
         loadWebsiteContent();
+    } else if (tabName === 'analytics') {
+        loadAnalytics();
     }
 }
 
@@ -2649,3 +2651,414 @@ window.markAsRead = markAsRead;
 window.removeProjectImage = removeProjectImage;
 window.removeTeamImage = removeTeamImage;
 window.reCropProjectImage = reCropProjectImage;
+
+// ========== Analytics Tab Logic ==========
+let chartVisitorsTimeInstance = null;
+let chartDevicesInstance = null;
+let chartBrowsersInstance = null;
+let chartCountriesInstance = null;
+
+let analyticsCache = [];
+let analyticsCurrentPage = 1;
+const analyticsPageSize = 10;
+let analyticsListenersBound = false;
+
+async function loadAnalytics() {
+    const tbody = document.getElementById('analyticsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading analytics data...</td></tr>';
+
+    try {
+        if (!window.supabaseClient) {
+            tbody.innerHTML = '<tr><td colspan="8" class="loading">Supabase not configured</td></tr>';
+            return;
+        }
+
+        const { data, error } = await window.supabaseClient
+            .from('visitor_sessions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        analyticsCache = data || [];
+
+        populateAnalyticsFilterOptions();
+        renderAnalyticsDashboard();
+        setupAnalyticsFilterListeners();
+
+    } catch (err) {
+        console.error('Error loading analytics:', err);
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">Error loading analytics. Run migration-analytics.sql in Supabase first.</td></tr>';
+    }
+}
+
+function populateAnalyticsFilterOptions() {
+    const countryFilter = document.getElementById('analyticsFilterCountry');
+    const pageFilter = document.getElementById('analyticsFilterPage');
+    if (!countryFilter || !pageFilter) return;
+
+    const countries = new Set();
+    const pages = new Set();
+
+    analyticsCache.forEach(session => {
+        if (session.country) countries.add(session.country);
+        if (session.landing_page) pages.add(session.landing_page);
+        if (session.current_page) pages.add(session.current_page);
+    });
+
+    const currentCountry = countryFilter.value;
+    countryFilter.innerHTML = '<option value="all">All Countries</option>';
+    [...countries].sort().forEach(c => {
+        const option = document.createElement('option');
+        option.value = c;
+        option.textContent = c;
+        countryFilter.appendChild(option);
+    });
+    countryFilter.value = currentCountry || 'all';
+
+    const currentPage = pageFilter.value;
+    pageFilter.innerHTML = '<option value="all">All Pages</option>';
+    [...pages].sort().forEach(p => {
+        const option = document.createElement('option');
+        option.value = p;
+        option.textContent = p;
+        pageFilter.appendChild(option);
+    });
+    pageFilter.value = currentPage || 'all';
+}
+
+function formatDuration(sec) {
+    if (sec < 60) return `${sec}s`;
+    const min = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${min}m ${s}s`;
+}
+
+function renderAnalyticsDashboard() {
+    const searchVal = (document.getElementById('analyticsSearch')?.value || '').trim().toLowerCase();
+    const dateVal = document.getElementById('analyticsFilterDate')?.value || 'all';
+    const countryVal = document.getElementById('analyticsFilterCountry')?.value || 'all';
+    const pageVal = document.getElementById('analyticsFilterPage')?.value || 'all';
+
+    let filtered = [...analyticsCache];
+
+    if (searchVal) {
+        filtered = filtered.filter(session => 
+            (session.country || '').toLowerCase().includes(searchVal) ||
+            (session.city || '').toLowerCase().includes(searchVal) ||
+            (session.browser || '').toLowerCase().includes(searchVal) ||
+            (session.os || '').toLowerCase().includes(searchVal) ||
+            (session.device_type || '').toLowerCase().includes(searchVal) ||
+            (session.visitor_token || '').toLowerCase().includes(searchVal)
+        );
+    }
+
+    if (dateVal !== 'all') {
+        const now = new Date();
+        filtered = filtered.filter(session => {
+            const date = new Date(session.created_at);
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (dateVal === 'today') {
+                return date.toDateString() === now.toDateString();
+            } else if (dateVal === '7days') {
+                return diffDays <= 7;
+            } else if (dateVal === '30days') {
+                return diffDays <= 30;
+            }
+            return true;
+        });
+    }
+
+    if (countryVal !== 'all') {
+        filtered = filtered.filter(session => session.country === countryVal);
+    }
+
+    if (pageVal !== 'all') {
+        filtered = filtered.filter(session => session.landing_page === pageVal || session.current_page === pageVal);
+    }
+
+    const totalSessions = filtered.length;
+    const uniqueTokens = new Set(filtered.map(s => s.visitor_token));
+    const totalVisitors = uniqueTokens.size;
+
+    const visitorSessionCounts = {};
+    analyticsCache.forEach(s => {
+        visitorSessionCounts[s.visitor_token] = (visitorSessionCounts[s.visitor_token] || 0) + 1;
+    });
+    const returningVisitors = [...uniqueTokens].filter(t => visitorSessionCounts[t] > 1).length;
+
+    const totalPageViews = filtered.reduce((sum, s) => sum + (s.pages_viewed || 1), 0);
+    const totalDuration = filtered.reduce((sum, s) => sum + (s.session_duration || 0), 0);
+    const avgDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
+
+    const blogViews = filtered.reduce((sum, s) => sum + (Array.isArray(s.blogs_viewed) ? s.blogs_viewed.length : 0), 0);
+    const projectViews = filtered.reduce((sum, s) => sum + (Array.isArray(s.projects_viewed) ? s.projects_viewed.length : 0), 0);
+    const contactSubmissions = filtered.filter(s => s.contact_submitted).length;
+    const resumeDownloads = filtered.filter(s => s.resume_downloaded).length;
+
+    document.getElementById('statTotalVisitors').textContent = totalVisitors;
+    document.getElementById('statReturningVisitors').textContent = returningVisitors;
+    document.getElementById('statTotalPageViews').textContent = totalPageViews;
+    document.getElementById('statAvgDuration').textContent = formatDuration(avgDuration);
+    
+    document.getElementById('statBlogViews').textContent = blogViews;
+    document.getElementById('statProjectViews').textContent = projectViews;
+    document.getElementById('statContactSubmissions').textContent = contactSubmissions;
+    document.getElementById('statResumeDownloads').textContent = resumeDownloads;
+
+    renderTopParameters(filtered);
+    renderCharts(filtered);
+    renderHistoryTable(filtered);
+}
+
+function renderTopParameters(filtered) {
+    const referrers = {};
+    const blogs = {};
+    const projects = {};
+
+    filtered.forEach(s => {
+        const ref = s.referrer || 'Direct';
+        referrers[ref] = (referrers[ref] || 0) + 1;
+
+        if (Array.isArray(s.blogs_viewed)) {
+            s.blogs_viewed.forEach(b => {
+                blogs[b] = (blogs[b] || 0) + 1;
+            });
+        }
+
+        if (Array.isArray(s.projects_viewed)) {
+            s.projects_viewed.forEach(p => {
+                projects[p] = (projects[p] || 0) + 1;
+            });
+        }
+    });
+
+    const renderList = (elId, obj) => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const sorted = Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        if (sorted.length === 0) {
+            el.innerHTML = '<li style="padding: 0.25rem 0;">No data yet.</li>';
+            return;
+        }
+        el.innerHTML = sorted.map(([key, count]) => 
+            `<li style="display:flex; justify-content:space-between; margin-bottom:0.4rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem;">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;" title="${escapeHtml(key)}">${escapeHtml(key)}</span>
+                <strong>${count}</strong>
+            </li>`
+        ).join('');
+    };
+
+    renderList('listTopReferrers', referrers);
+    renderList('listTopBlogs', blogs);
+    renderList('listTopProjects', projects);
+}
+
+function renderCharts(filtered) {
+    const visitsByDate = {};
+    filtered.forEach(s => {
+        const dStr = new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        visitsByDate[dStr] = (visitsByDate[dStr] || 0) + 1;
+    });
+    const dateLabels = Object.keys(visitsByDate).reverse();
+    const dateData = dateLabels.map(lbl => visitsByDate[lbl]);
+
+    const devices = {};
+    filtered.forEach(s => {
+        const dev = s.device_type || 'Desktop';
+        devices[dev] = (devices[dev] || 0) + 1;
+    });
+
+    const browsers = {};
+    filtered.forEach(s => {
+        const br = s.browser || 'Unknown';
+        browsers[br] = (browsers[br] || 0) + 1;
+    });
+
+    const countries = {};
+    filtered.forEach(s => {
+        const c = s.country || 'Unknown';
+        countries[c] = (countries[c] || 0) + 1;
+    });
+
+    if (chartVisitorsTimeInstance) chartVisitorsTimeInstance.destroy();
+    if (chartDevicesInstance) chartDevicesInstance.destroy();
+    if (chartBrowsersInstance) chartBrowsersInstance.destroy();
+    if (chartCountriesInstance) chartCountriesInstance.destroy();
+
+    if (typeof Chart === 'undefined') {
+        console.warn('Chart.js is not loaded.');
+        return;
+    }
+
+    const ctxTime = document.getElementById('chartVisitorsTime')?.getContext('2d');
+    if (ctxTime) {
+        chartVisitorsTimeInstance = new Chart(ctxTime, {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    label: 'Visits',
+                    data: dateData,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    const createDoughnut = (canvasId, obj) => {
+        const ctx = document.getElementById(canvasId)?.getContext('2d');
+        if (!ctx) return null;
+        const labels = Object.keys(obj);
+        const data = Object.values(obj);
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data,
+                    backgroundColor: [
+                        '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } }
+            }
+        });
+    };
+
+    chartDevicesInstance = createDoughnut('chartDevices', devices);
+    chartBrowsersInstance = createDoughnut('chartBrowsers', browsers);
+    chartCountriesInstance = createDoughnut('chartCountries', countries);
+}
+
+function renderHistoryTable(filtered) {
+    const tbody = document.getElementById('analyticsTableBody');
+    if (!tbody) return;
+
+    const totalLogs = filtered.length;
+    const totalPages = Math.ceil(totalLogs / analyticsPageSize);
+
+    if (analyticsCurrentPage > totalPages) analyticsCurrentPage = Math.max(1, totalPages);
+
+    const startIdx = (analyticsCurrentPage - 1) * analyticsPageSize;
+    const endIdx = Math.min(startIdx + analyticsPageSize, totalLogs);
+
+    const pageLogs = filtered.slice(startIdx, endIdx);
+
+    const btnPrev = document.getElementById('analyticsBtnPrev');
+    const btnNext = document.getElementById('analyticsBtnNext');
+    if (btnPrev) btnPrev.disabled = analyticsCurrentPage <= 1;
+    if (btnNext) btnNext.disabled = analyticsCurrentPage >= totalPages;
+
+    const info = document.getElementById('analyticsPaginationInfo');
+    if (info) {
+        info.textContent = totalLogs > 0 
+            ? `Showing ${startIdx + 1}-${endIdx} of ${totalLogs} logs`
+            : `Showing 0-0 of 0 logs`;
+    }
+
+    if (pageLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">No logs match the criteria.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = pageLogs.map(session => {
+        const token = session.visitor_token.substring(4, 12) + '...';
+        const geo = `${escapeHtml(session.city || '')}, ${escapeHtml(session.country || '')}`;
+        const device = `${escapeHtml(session.device_type)} / ${escapeHtml(session.browser)} / ${escapeHtml(session.os)}`;
+        const duration = formatDuration(session.session_duration || 0);
+        const views = session.pages_viewed || 1;
+        const pageRoute = `L: ${escapeHtml(session.landing_page)} <br> C: ${escapeHtml(session.current_page)}`;
+        
+        const conversions = [];
+        if (session.contact_submitted) conversions.push('<span class="badge" style="background:#10b981; color:#fff; font-size:10px; padding:2px 5px; border-radius:4px; margin-bottom: 2px;">Contact Sent</span>');
+        if (session.resume_downloaded) conversions.push('<span class="badge" style="background:#3b82f6; color:#fff; font-size:10px; padding:2px 5px; border-radius:4px; margin-bottom: 2px;">Resume DL</span>');
+        if (Array.isArray(session.blogs_viewed) && session.blogs_viewed.length > 0) {
+            conversions.push(`<span class="badge" style="background:#f59e0b; color:#fff; font-size:10px; padding:2px 5px; border-radius:4px; margin-bottom: 2px;">Blog (${session.blogs_viewed.length})</span>`);
+        }
+        if (Array.isArray(session.projects_viewed) && session.projects_viewed.length > 0) {
+            conversions.push(`<span class="badge" style="background:#8b5cf6; color:#fff; font-size:10px; padding:2px 5px; border-radius:4px; margin-bottom: 2px;">Project (${session.projects_viewed.length})</span>`);
+        }
+
+        const dateStr = new Date(session.created_at).toLocaleString();
+
+        return `
+        <tr>
+            <td><code title="${escapeHtml(session.visitor_token)}">${token}</code></td>
+            <td>${geo}</td>
+            <td>${device}</td>
+            <td>${duration}</td>
+            <td>${views}</td>
+            <td style="font-size: 11px; max-width: 200px; word-break: break-all;">${pageRoute}</td>
+            <td>
+                <div style="display:flex; flex-direction:column; gap:3px;">
+                    ${conversions.length > 0 ? conversions.join('') : '—'}
+                </div>
+            </td>
+            <td style="font-size: 11px;">${dateStr}</td>
+        </tr>
+        `;
+    }).join('');
+}
+
+function setupAnalyticsFilterListeners() {
+    if (analyticsListenersBound) return;
+
+    document.getElementById('analyticsSearch')?.addEventListener('input', () => {
+        analyticsCurrentPage = 1;
+        renderAnalyticsDashboard();
+    });
+
+    document.getElementById('analyticsFilterDate')?.addEventListener('change', () => {
+        analyticsCurrentPage = 1;
+        renderAnalyticsDashboard();
+    });
+
+    document.getElementById('analyticsFilterCountry')?.addEventListener('change', () => {
+        analyticsCurrentPage = 1;
+        renderAnalyticsDashboard();
+    });
+
+    document.getElementById('analyticsFilterPage')?.addEventListener('change', () => {
+        analyticsCurrentPage = 1;
+        renderAnalyticsDashboard();
+    });
+
+    document.getElementById('analyticsBtnPrev')?.addEventListener('click', () => {
+        if (analyticsCurrentPage > 1) {
+            analyticsCurrentPage--;
+            renderAnalyticsDashboard();
+        }
+    });
+
+    document.getElementById('analyticsBtnNext')?.addEventListener('click', () => {
+        analyticsCurrentPage++;
+        renderAnalyticsDashboard();
+    });
+
+    document.getElementById('refreshAnalyticsBtn')?.addEventListener('click', () => {
+        loadAnalytics();
+    });
+
+    analyticsListenersBound = true;
+}
